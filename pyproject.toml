@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [tool.poetry]
+packages = [{include = "target_scan_agent", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 langchain = "^0.3.25"
