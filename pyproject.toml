@@ -11,7 +11,8 @@ dependencies = [
     "langgraph (>=0.4.8,<0.5.0)",
     "tavily-python (>=0.7.5,<0.8.0)",
     "fastapi[standard] (>=0.115.12,<0.116.0)",
-    "uvicorn (>=0.34.3,<0.35.0)"
+    "uvicorn (>=0.34.3,<0.35.0)",
+    "pydantic (>=2.0.0,<3.0.0)"
 ]
 
 [tool.poetry]
@@ -23,6 +24,7 @@ langchain-openai = "^0.3.21"
 asyncio = "^3.4.3"
 aiohttp = "^3.12.11"
 pytest = "^8.4.0"
+pytest-asyncio = "^0.21.0"
 black = "^25.1.0"
 isort = "^6.0.1"
 ipykernel = "^6.29.5"
@@ -38,7 +40,11 @@ addopts = [
     "--tb=short",
     "--strict-config",
     "--strict-markers",
+    "--log-cli-level=INFO",
+    "--log-cli-format=%(asctime)s [%(levelname)8s] %(name)s: %(message)s",
+    "--log-cli-date-format=%Y-%m-%d %H:%M:%S",
 ]
+asyncio_mode = "auto"
 markers = [
     "unit: Unit tests",
     "integration: Integration tests", 
