@@ -26,6 +26,24 @@ pytest = "^8.4.0"
 black = "^25.1.0"
 isort = "^6.0.1"
 ipykernel = "^6.29.5"
+requests = "^2.32.3"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-config",
+    "--strict-markers",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "slow: Slow running tests",
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
