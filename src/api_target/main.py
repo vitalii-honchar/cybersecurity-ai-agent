@@ -79,48 +79,6 @@ class FileUpload(BaseModel):
     filename: str
     content: str  # Base64 encoded
 
-# Root endpoint with information disclosure
-# @app.get("/", response_class=HTMLResponse)
-# async def root():
-#     """Root endpoint - Vulnerability: Information disclosure"""
-#     return """
-#     <html>
-#         <head><title>Vulnerable Test API</title></head>
-#         <body>
-#             <h1>🔓 Vulnerable Test API</h1>
-#             <p><strong>⚠️ WARNING: This is an intentionally vulnerable application for testing purposes!</strong></p>
-            
-#             <h2>Available Endpoints:</h2>
-#             <ul>
-#                 <li><a href="/docs">📚 API Documentation (Swagger)</a></li>
-#                 <li><a href="/users">👥 List Users</a></li>
-#                 <li><a href="/admin/debug">🐛 Debug Info</a></li>
-#                 <li><a href="/search?q=test">🔍 Search</a></li>
-#                 <li><a href="/files">📁 File Management</a></li>
-#             </ul>
-            
-#             <h2>Test Credentials:</h2>
-#             <pre>
-# Username: admin    Password: admin123
-# Username: user     Password: password
-# Username: test     Password: test
-#             </pre>
-            
-#             <h2>Known Vulnerabilities:</h2>
-#             <ul>
-#                 <li>SQL Injection in search</li>
-#                 <li>Weak authentication</li>
-#                 <li>Information disclosure</li>
-#                 <li>Command injection</li>
-#                 <li>Path traversal</li>
-#                 <li>Weak passwords</li>
-#                 <li>No rate limiting</li>
-#                 <li>Insecure direct object references</li>
-#             </ul>
-#         </body>
-#     </html>
-#     """
-
 # Vulnerability: Information Disclosure - Lists all users without authentication
 @app.get("/users", response_model=List[User])
 async def get_users():
