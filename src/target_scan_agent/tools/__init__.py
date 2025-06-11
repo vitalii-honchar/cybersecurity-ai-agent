@@ -1,3 +1,5 @@
 from target_scan_agent.tools.http.flexible_http_tool import flexible_http_tool
+from target_scan_agent.tools.http.curl_tool import curl_tool
 from target_scan_agent.tools.vulnerability.nuclei_scan_tool import nuclei_scan_tool
 from target_scan_agent.tools.enumeration.ffuf import ffuf_directory_scan_sync as ffuf_directory_scan
+from target_scan_agent.tools.port_scan.nmap_tool import nmap_port_scan_tool

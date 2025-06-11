@@ -10,8 +10,10 @@ from target_scan_agent.node import (
 from langchain_openai import ChatOpenAI
 from target_scan_agent.tools import (
     flexible_http_tool,
+    curl_tool,
     nuclei_scan_tool,
     ffuf_directory_scan,
+    nmap_port_scan_tool,
 )
 from target_scan_agent.edge import ToolRouterEdge
 
@@ -20,7 +22,7 @@ def create_graph() -> CompiledStateGraph:
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
     # tools
-    tools = [nuclei_scan_tool, ffuf_directory_scan]
+    tools = [nuclei_scan_tool, ffuf_directory_scan, curl_tool]  # nmap_port_scan_tool disabled due to LangChain docstring parsing issue
     llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=True)
 
     # nodes init

@@ -1,12 +1,20 @@
 import operator
 from langgraph.graph import MessagesState
 from pydantic import BaseModel, Field
-from typing import Annotated
+from typing import Annotated, Dict, Any
 
 
 class Target(BaseModel):
     description: str = Field(description="A description of the target to be scanned.")
     url: str = Field(description="The URL of the target to be scanned.")
+
+    def to_json(self) -> str:
+        """Convert to JSON string for serialization."""
+        return self.model_dump_json()
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
 
 
 class TargetScan(BaseModel):
@@ -41,6 +49,14 @@ class TargetScanOutput(BaseModel):
         default=None,
         description="A summary of the scan results, including any vulnerabilities or insights found.",
     )
+
+    def to_json(self) -> str:
+        """Convert to JSON string for serialization."""
+        return self.model_dump_json()
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
 
 
 class TargetScanState(MessagesState):

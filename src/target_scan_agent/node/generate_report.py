@@ -18,28 +18,55 @@ class GenerateReportNode:
         # Build context from all scan results
         scan_context = self._build_scan_context(results)
 
-        report_prompt = f"""You are a security analyst creating a factual report based on completed scans of {target.url}.
+        report_prompt = f"""You are a senior penetration tester creating a comprehensive security assessment report for {target.url}.
 
-SCAN RESULTS:
+SCAN RESULTS DATA:
 {scan_context}
 
-Create a concise security report that includes ONLY what was actually discovered during the scans. Do NOT include recommendations, suggestions, or assumptions.
+Generate a professional security report with the following structure:
 
-REPORT SECTIONS:
-1. **Found Technologies**: List any identified technologies, frameworks, server software, or services that were detected
-2. **Found Vulnerabilities**: List any confirmed vulnerabilities discovered with specific details (endpoints, parameters, evidence)
-3. **Found Insights**: Notable findings like exposed endpoints, unusual responses, configuration details, or security-relevant information
+## EXECUTIVE SUMMARY
+- Overall security posture assessment
+- Key risk areas identified
+- Critical findings count and severity breakdown
 
-IMPORTANT RULES:
-- Report ONLY confirmed findings from the actual scan results
-- Do NOT suggest additional testing or recommendations  
-- Do NOT mention tools that could be used
-- Do NOT speculate about potential vulnerabilities
-- If no findings in a category, state "None detected" for that section
-- Be specific with URLs, status codes, and evidence when available
-- Focus on facts, not possibilities
+## DISCOVERED TECHNOLOGIES
+List all identified technologies with versions when available:
+- Web servers, frameworks, CMS platforms
+- Programming languages, databases
+- Third-party services and plugins
+- Operating system and infrastructure details
 
-Format your response as a clear, structured report."""
+## VULNERABILITY FINDINGS
+Organize by severity (Critical → High → Medium → Low → Info):
+For each vulnerability include:
+- **Vulnerability Name**: Clear, descriptive title
+- **Severity**: Critical/High/Medium/Low/Info with justification
+- **Location**: Specific URLs, endpoints, parameters affected
+- **Evidence**: Technical proof (status codes, responses, payloads)
+- **Impact**: Potential consequences if exploited
+- **Exploitation Details**: How the vulnerability can be leveraged
+
+## SECURITY INSIGHTS
+- Exposed endpoints and interesting discoveries
+- Configuration issues and misconfigurations
+- Information disclosure findings
+- Attack surface analysis
+- Security controls observed (or lack thereof)
+
+## TECHNICAL APPENDIX
+- Detailed tool outputs for verification
+- Request/response examples for critical findings
+- Proof-of-concept commands where applicable
+
+FORMATTING REQUIREMENTS:
+- Use markdown formatting for structure
+- Include specific technical evidence for all claims
+- Prioritize findings by exploitability and impact
+- Maintain professional, technical language
+- If no findings in a section, state "No findings identified"
+
+Focus on actionable intelligence that demonstrates actual security posture and confirmed vulnerabilities."""
 
         try:
             report_messages = [HumanMessage(report_prompt)]

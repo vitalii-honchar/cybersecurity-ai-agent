@@ -17,6 +17,14 @@ class FfufFinding(BaseModel):
     class Config:
         populate_by_name = True
 
+    def to_json(self) -> str:
+        """Convert to JSON string for serialization."""
+        return self.model_dump_json()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
+
     @property
     def is_interesting(self) -> bool:
         """Check if this finding is particularly interesting for security."""
