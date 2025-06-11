@@ -35,7 +35,12 @@ def _get_wordlist_path(wordlist_type: str) -> Optional[str]:
         return None
 
     # Simple wordlist mapping - only 3 essential lists
-    wordlist_files = {"common": "common.txt", "medium": "medium.txt", "big": "big.txt"}
+    wordlist_files = {
+        "common": "common.txt",
+        "medium": "medium.txt",
+        "big": "big.txt",
+        "small": "small.txt",
+    }
 
     wordlist_file = wordlist_files.get(wordlist_type)
     if not wordlist_file:
@@ -56,23 +61,28 @@ def _get_scan_timeout(wordlist_size: int) -> int:
 
 
 def _create_ffuf_command(
-    target: str,
-    wordlist_path: str,
-    output_file: str,
-    extensions: str
+    target: str, wordlist_path: str, output_file: str, extensions: str
 ) -> list[str]:
     """Create ffuf command with consistent parameters."""
     cmd = [
         "ffuf",
-        "-w", wordlist_path,
-        "-u", f"{target.rstrip('/')}/FUZZ",
-        "-o", output_file,
-        "-of", "json",
+        "-w",
+        wordlist_path,
+        "-u",
+        f"{target.rstrip('/')}/FUZZ",
+        "-o",
+        output_file,
+        "-of",
+        "json",
         "-c",  # Colorize
-        "-t", "50",  # Threads
-        "-timeout", "10",
-        "-mc", "200,201,204,301,302,307,401,403,500",  # Match interesting codes
-        "-fs", "0",  # Filter zero size
+        "-t",
+        "50",  # Threads
+        "-timeout",
+        "10",
+        "-mc",
+        "200,201,204,301,302,307,401,403,500",  # Match interesting codes
+        "-fs",
+        "0",  # Filter zero size
         "-ac",  # Auto-calibrate
     ]
 
@@ -86,21 +96,21 @@ def _create_ffuf_command(
 def _parse_ffuf_results(output_file: str) -> list[FfufFinding]:
     """Parse ffuf JSON output into structured findings."""
     findings = []
-    
+
     try:
         data = read_json_file(output_file)
         results = data.get("results", [])
-        
+
         for result in results:
             try:
                 finding = FfufFinding.model_validate(result)
                 findings.append(finding)
             except ValidationError as e:
                 logging.warning(f"Failed to validate ffuf finding: {e}")
-                
+
     except Exception as e:
         logging.error(f"Failed to parse ffuf results: {e}")
-    
+
     return findings
 
 
@@ -108,7 +118,7 @@ async def ffuf_directory_scan(
     target: str,
     wordlist_type: str = "common",
     extensions: str = "php,html,js,txt",
-    timeout: Optional[int] = None
+    timeout: Optional[int] = None,
 ) -> FfufScanResult:
     """
     Fast web directory discovery using ffuf with structured output.
@@ -116,12 +126,23 @@ async def ffuf_directory_scan(
     Args:
         target: Target URL to scan (e.g., "http://localhost:8000")
         wordlist_type: Choose scanning coverage level - "common", "medium", or "big"
-        extensions: File extensions to test, comma-separated
+        extensions: File extensions to test, comma-separated (e.g., "php,html,js,txt")
         timeout: Custom timeout in seconds (optional, auto-calculated if not provided)
 
     Returns:
         FfufScanResult with findings, metadata, and helper methods
     """
+    wordlist_type = "common"  # if wordlist_type == "big" else wordlist_type
+    # Validate arguments first
+    validation_error = _validate_ffuf_arguments(target, wordlist_type, extensions)
+    if validation_error:
+        return FfufScanResult.create_error(
+            validation_error,
+            target=target,
+            wordlist_type=wordlist_type,
+            wordlist_size=0,
+            extensions=extensions,
+        )
     process = None
     temp_file = None
     start_time = time.time()
@@ -131,20 +152,22 @@ async def ffuf_directory_scan(
         wordlist_path = _get_wordlist_path(wordlist_type)
         if not wordlist_path:
             return FfufScanResult.create_error(
-                f"Wordlist '{wordlist_type}' not found. Available options: common, medium, big",
+                f"Wordlist '{wordlist_type}' not found. Available options: common, small",
                 target=target,
                 wordlist_type=wordlist_type,
-                extensions=extensions
+                extensions=extensions,
             )
 
         # Get wordlist size
         wordlist_size = count_lines_in_file(wordlist_path)
-        
+
         # Set timeout
         if timeout is None:
             timeout = _get_scan_timeout(wordlist_size)
 
-        logging.info(f"🔄 Starting ffuf scan with {wordlist_size:,} wordlist entries...")
+        logging.info(
+            f"🔄 Starting ffuf scan with {wordlist_size:,} wordlist entries..."
+        )
 
         # Create temp output file
         temp_file = create_temp_file(suffix=".json")
@@ -172,7 +195,7 @@ async def ffuf_directory_scan(
             wordlist_type=wordlist_type,
             wordlist_size=wordlist_size,
             extensions=extensions,
-            scan_duration=scan_duration
+            scan_duration=scan_duration,
         )
 
     except FileNotFoundError:
@@ -180,7 +203,7 @@ async def ffuf_directory_scan(
             "ffuf not found. Install with: sudo apt install ffuf or go install github.com/ffuf/ffuf/v2@latest",
             target=target,
             wordlist_type=wordlist_type,
-            extensions=extensions
+            extensions=extensions,
         )
     except Exception as e:
         logging.error(f"Error during ffuf scan: {e}")
@@ -188,19 +211,66 @@ async def ffuf_directory_scan(
             f"ffuf scan failed: {str(e)}",
             target=target,
             wordlist_type=wordlist_type,
-            extensions=extensions
+            extensions=extensions,
         )
     finally:
         terminate_process(process)
         delete_temp_file(temp_file)
 
 
+def _validate_ffuf_arguments(
+    target: str, wordlist_type: str, extensions: str
+) -> str | None:
+    """
+    Validate ffuf tool arguments and return error message if invalid.
+
+    Returns:
+        None if valid, error message string if invalid
+    """
+    VALID_WORDLIST_TYPES = {"common", "medium", "big", "small"}
+
+    # Validate target
+    if not target or not isinstance(target, str):
+        return "❌ VALIDATION ERROR: 'target' must be a non-empty string URL (e.g., 'http://localhost:8000')"
+
+    if not target.startswith(("http://", "https://")):
+        return f"❌ VALIDATION ERROR: 'target' must be a valid URL starting with http:// or https://. Got: '{target}'"
+
+    # Validate wordlist_type
+    if not wordlist_type or not isinstance(wordlist_type, str):
+        return "❌ VALIDATION ERROR: 'wordlist_type' must be a non-empty string"
+
+    if wordlist_type not in VALID_WORDLIST_TYPES:
+        return f"""❌ VALIDATION ERROR: Invalid wordlist_type '{wordlist_type}'
+
+✅ VALID WORDLIST TYPES:
+- "common": ~4,700 entries (fastest, good for initial scans)
+- "medium": ~220,000 entries (balanced coverage) 
+- "big": ~1,270,000 entries (comprehensive, takes longer)
+
+📝 EXAMPLE CORRECT CALLS:
+- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="common")
+- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="medium")
+- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="big")
+
+Please use one of the exact wordlist types above."""
+
+    # Validate extensions
+    if not extensions or not isinstance(extensions, str):
+        return "❌ VALIDATION ERROR: 'extensions' must be a non-empty string (e.g., 'php,html,js,txt')"
+
+    # Check for common extension format mistakes
+    if " " in extensions:
+        return f"❌ VALIDATION ERROR: 'extensions' should be comma-separated without spaces. Got: '{extensions}'. Use 'php,html,js,txt' instead of 'php, html, js, txt'"
+
+    return None  # All validations passed
+
+
 # Sync wrapper for backward compatibility
 def ffuf_directory_scan_sync(
-    target: str,
-    wordlist_type: str = "common", 
-    extensions: str = "php,html,js,txt"
+    target: str, wordlist_type: str = "common", extensions: str = "php,html,js,txt"
 ) -> FfufScanResult:
     """Synchronous wrapper for ffuf_directory_scan."""
     import asyncio
+
     return asyncio.run(ffuf_directory_scan(target, wordlist_type, extensions))

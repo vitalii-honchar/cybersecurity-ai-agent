@@ -21,7 +21,7 @@ async def flexible_http_tool(
     Flexible HTTP tool that returns raw response data for LLM analysis.
 
     Args:
-        url: Target URL to request
+        url: Target URL to request (must start with http:// or https://)
         method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
         headers: Custom HTTP headers to send
         body: Request body (string or dict for JSON)
@@ -30,11 +30,15 @@ async def flexible_http_tool(
         timeout: Request timeout in seconds
         include_response_headers: Whether to include response headers in output
         max_content_length: Maximum response body length to return
-        user_agent: User-Agent string (e.g., "Chrome/91.0", "SecurityAgent/1.0", "curl/7.68.0")
+        user_agent: User-Agent string
 
     Returns:
         Raw HTTP response data as text for LLM analysis
     """
+    # Validate arguments first
+    validation_error = _validate_http_arguments(url, method, timeout)
+    if validation_error:
+        return f"❌ HTTP TOOL ERROR: {validation_error}"
 
     # Prepare default headers - LLM can customize user_agent
     default_headers = {
@@ -118,3 +122,41 @@ async def flexible_http_tool(
             return f"Error: HTTP {e.response.status_code} - {str(e)}"
         except Exception as e:
             return f"Error: Unexpected error during {method.upper()} {url} - {str(e)}"
+
+
+def _validate_http_arguments(url: str, method: str, timeout: int) -> str | None:
+    """
+    Validate HTTP tool arguments and return error message if invalid.
+    
+    Returns:
+        None if valid, error message string if invalid
+    """
+    VALID_METHODS = {'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'}
+    
+    # Validate URL
+    if not url or not isinstance(url, str):
+        return "'url' must be a non-empty string (e.g., 'http://localhost:8000')"
+    
+    if not url.startswith(('http://', 'https://')):
+        return f"'url' must start with http:// or https://. Got: '{url}'"
+    
+    # Validate method
+    if not method or not isinstance(method, str):
+        return "'method' must be a non-empty string"
+    
+    method_upper = method.upper()
+    if method_upper not in VALID_METHODS:
+        return f"""Invalid HTTP method '{method}'. 
+
+✅ VALID METHODS: {', '.join(sorted(VALID_METHODS))}
+
+📝 EXAMPLES:
+- flexible_http_tool(url="http://localhost:8000", method="GET")
+- flexible_http_tool(url="http://localhost:8000/login", method="POST")
+- flexible_http_tool(url="http://localhost:8000", method="HEAD")"""
+    
+    # Validate timeout
+    if not isinstance(timeout, int) or timeout <= 0:
+        return f"'timeout' must be a positive integer. Got: {timeout}"
+    
+    return None  # All validations passed

@@ -49,7 +49,7 @@ class TestAssistantNode:
         
         # Verify the system message contains serialized results
         system_message = called_messages[-1]
-        assert "Previous scan results:" in system_message.content
+        assert "PREVIOUS SCAN RESULTS & CONTEXT:" in system_message.content
         assert "Test Scan" in system_message.content
         assert "HIGH" in system_message.content
     
@@ -84,4 +84,4 @@ class TestAssistantNode:
         # Verify system message doesn't contain results section
         called_messages = mock_llm.invoke.call_args[0][0]
         system_message = called_messages[-1]
-        assert "Previous scan results:" not in system_message.content
+        assert "PREVIOUS SCAN RESULTS & CONTEXT:" not in system_message.content
