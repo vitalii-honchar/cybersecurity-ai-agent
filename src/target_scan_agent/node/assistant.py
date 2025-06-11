@@ -3,30 +3,53 @@ from langchain_core.messages import SystemMessage, BaseMessage
 from langchain_core.runnables import Runnable
 from langchain_core.language_models import LanguageModelInput
 from dataclasses import dataclass
+import json
 
-assistant_system_prompt = """You are a persistent security expert specialized in comprehensive web application vulnerability scanning.
-You will be provided with a target URL and a description. Your task is to thoroughly analyze the target 
-using MULTIPLE scanning approaches and techniques until you find vulnerabilities or exhaust all options.
+assistant_system_prompt = """You are a persistent cybersecurity expert specialized in comprehensive target vulnerability assessment.
+Your mission is to perform thorough reconnaissance first, then launch targeted attacks based on your findings.
 
 Target url: '{url}'
 Target description: '{description}'
 
-CRITICAL SCANNING METHODOLOGY:
-1. Start with broad vulnerability scanning (nuclei with different template sets)
-2. Perform reconnaissance (directory discovery, tech detection, port scanning)
-3. Try manual HTTP probing for common vulnerabilities
-4. Test different attack vectors and endpoints
-5. Use multiple tools and approaches - don't stop after first negative result
+PHASE 1: RECONNAISSANCE (Intelligence Gathering)
+First, gather intelligence about the target to understand what you're dealing with:
+1. Directory and file discovery using ffuf tool
+2. Technology stack identification
+3. Service enumeration and fingerprinting
+4. Infrastructure mapping
+
+PHASE 2: TARGETED ATTACKS (Based on Reconnaissance Results)
+Based on your reconnaissance findings, select appropriate attack vectors:
+
+FOR HTTP SERVICES:
+- If you discover HTTP endpoints → Use curl tool for manual probing (authentication bypass, parameter injection, etc.)
+- If you identify web applications → Use nuclei tool with relevant templates based on detected technology
+- Example: If reconnaissance reveals a login page at /admin → Use curl to test default credentials, SQL injection
+
+FOR SPECIFIC TECHNOLOGIES:
+- WordPress detected → Use nuclei with wordpress templates
+- API endpoints found → Use curl for API testing and nuclei for API-specific vulnerabilities
+- Admin panels discovered → Use curl for authentication testing and nuclei for admin-specific exploits
+
+RECONNAISSANCE-TO-ATTACK WORKFLOW:
+1. Start with ffuf for directory/file discovery
+2. Analyze discovered endpoints and technologies
+3. Choose attack tools based on findings:
+   - HTTP findings → curl for manual testing
+   - Web applications → nuclei with targeted templates
+   - Specific technologies → technology-specific nuclei templates
 
 PERSISTENCE RULES:
-- If one scan finds nothing, try different template tags or severity levels
-- Explore different endpoints (/admin, /api, /login, etc.)
-- Test for common misconfigurations and exposed files
-- A "no vulnerabilities found" result means try harder, not give up
-- Always perform at least 3-5 different types of scans before concluding
-- Local applications (localhost) often have intentional vulnerabilities for testing
+- Always perform reconnaissance before attacks
+- Base your attack strategy on reconnaissance results
+- If initial attacks fail, expand reconnaissance scope
+- Try multiple attack vectors for each discovered service
+- Local applications often contain intentional vulnerabilities for testing
+- Never conclude "no vulnerabilities" without thorough reconnaissance and targeted attacks
 
-DO NOT conclude "no vulnerabilities" until you've tried multiple scanning approaches."""
+Remember: Reconnaissance drives attack selection. First understand what you're attacking, then attack it properly."""
+
+TOOLS_CALLING = 10
 
 
 @dataclass
@@ -36,6 +59,7 @@ class AssistantNode:
     def assistant(self, state: TargetScanState):
         target = state["target"]
         messages = state.get("messages", [])
+        call_count = state.get("call_count", 0)
 
         prompt = assistant_system_prompt.format(
             url=target.url, description=target.description
@@ -43,20 +67,12 @@ class AssistantNode:
 
         # Add scan context if we have previous tool results
         if len(state["results"]) > 0:
-            prompt += f"\n\nYou have {20 - len(state['results'])} tool calls remaining. Use them wisely."
+            prev_scans = json.dumps(state["results"], indent=2)
+            prompt += f"\n\nPrevious scan results:\n{prev_scans}"
 
-            # Add context from previous scans
-            scan_summary = "\n".join(
-                [
-                    f"Previous scan {i+1}: {result.scan_result}..."
-                    for i, result in enumerate(state["results"])
-                    if result.scan_result
-                ]
-            )
-            if scan_summary:
-                prompt += f"\n\nPrevious scan results:\n{scan_summary}"
+        if call_count > 0:
+            prompt += f"\n\nYou have {TOOLS_CALLING - call_count} tool calls remaining. Use them wisely."
 
-        # Include conversation history so LLM can see tool results
         all_messages = messages + [SystemMessage(prompt)]
         res = self.llm_with_tools.invoke(all_messages)
 

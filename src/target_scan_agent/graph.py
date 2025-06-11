@@ -20,12 +20,12 @@ def create_graph() -> CompiledStateGraph:
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
     # tools
-    tools = [flexible_http_tool, nuclei_scan_tool, ffuf_directory_scan]
+    tools = [nuclei_scan_tool, ffuf_directory_scan]
     llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=True)
 
     # nodes init
     assistant_node = AssistantNode(llm_with_tools=llm_with_tools)
-    process_tool_result_node = ProcessToolResultNode()
+    process_tool_result_node = ProcessToolResultNode(llm=llm)
     generate_report_node = GenerateReportNode(llm=llm)
 
     # edges init

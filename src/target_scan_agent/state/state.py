@@ -10,10 +10,30 @@ class Target(BaseModel):
 
 
 class TargetScan(BaseModel):
-    scan_result: str | None = Field(
+    name: str | None = Field(
         default=None,
-        description="The result of the target scan, including any vulnerabilities or insights found.",
+        description="The name of the scan result, if applicable.",
     )
+    severity: str | None = Field(
+        default=None,
+        description="The severity level of the scan result, if applicable.",
+    )
+    description: str | None = Field(
+        default=None,
+        description="A description of the scan result, including any vulnerabilities or insights found.",
+    )
+    possible_attacks: list[str] | None = Field(
+        default=None,
+        description="A list of possible attacks or vulnerabilities identified during the scan with command examples",
+    )
+
+    def to_json(self) -> str:
+        """Convert to JSON string for serialization."""
+        return self.model_dump_json()
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
 
 
 class TargetScanOutput(BaseModel):
