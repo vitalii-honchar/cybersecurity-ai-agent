@@ -164,7 +164,7 @@ async def ffuf_directory_scan(
 
         # Set timeout
         if timeout is None:
-            timeout = _get_scan_timeout(wordlist_size)
+            timeout = 300
 
         logging.info(
             f"🔄 Starting ffuf scan with {wordlist_size:,} wordlist entries..."

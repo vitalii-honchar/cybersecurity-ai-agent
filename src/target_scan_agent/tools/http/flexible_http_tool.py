@@ -3,6 +3,7 @@ import httpx
 import json
 from typing import Optional, Union, Any
 import time
+from .models import HttpResult
 
 
 async def flexible_http_tool(
@@ -16,9 +17,9 @@ async def flexible_http_tool(
     include_response_headers: bool = True,
     max_content_length: int = 10000,
     user_agent: str = "SecurityAgent/1.0",
-) -> str:
+) -> HttpResult:
     """
-    Flexible HTTP tool that returns raw response data for LLM analysis.
+    Flexible HTTP tool that returns structured response data for LLM analysis.
 
     Args:
         url: Target URL to request (must start with http:// or https://)
@@ -33,12 +34,16 @@ async def flexible_http_tool(
         user_agent: User-Agent string
 
     Returns:
-        Raw HTTP response data as text for LLM analysis
+        HttpResult with structured response data for LLM analysis
     """
     # Validate arguments first
     validation_error = _validate_http_arguments(url, method, timeout)
     if validation_error:
-        return f"❌ HTTP TOOL ERROR: {validation_error}"
+        return HttpResult.create_error(
+            url=url,
+            method=method,
+            error_message=f"Validation Error: {validation_error}"
+        )
 
     # Prepare default headers - LLM can customize user_agent
     default_headers = {
@@ -80,48 +85,62 @@ async def flexible_http_tool(
                 params=params,
             )
 
-            response_time = round((time.perf_counter() - start_time) * 1000, 2)
+            execution_time = time.perf_counter() - start_time
 
-            # Build response text for LLM analysis
-            result_parts = []
+            # Prepare response content (truncated if too long)
+            content = response.text or ""
+            if len(content) > max_content_length:
+                content = content[:max_content_length] + f"\n... (truncated from {len(response.text)} chars)"
 
-            # Basic request/response info
-            result_parts.append(f"HTTP Request: {method.upper()} {response.url}")
-            result_parts.append(f"Status Code: {response.status_code}")
-            result_parts.append(f"Status Text: {response.reason_phrase}")
-            result_parts.append(f"Response Time: {response_time}ms")
-            result_parts.append(f"Content Length: {len(response.content)} bytes")
+            # Convert headers to dict, only include if requested
+            response_headers = dict(response.headers) if include_response_headers else {}
 
-            # Include response headers if requested
-            if include_response_headers:
-                result_parts.append("\nResponse Headers:")
-                for name, value in response.headers.items():
-                    result_parts.append(f"{name}: {value}")
-
-            # Include response body (truncated if too long)
-            if response.text:
-                content = response.text
-                if len(content) > max_content_length:
-                    content = (
-                        content[:max_content_length]
-                        + f"\n... (truncated, full length: {len(response.text)} chars)"
-                    )
-
-                result_parts.append(f"\nResponse Body:")
-                result_parts.append(content)
-            else:
-                result_parts.append("\nResponse Body: (empty)")
-
-            return "\n".join(result_parts)
+            return HttpResult.create_success(
+                url=str(response.url),
+                method=method,
+                status_code=response.status_code,
+                headers=response_headers,
+                content=content,
+                execution_time=execution_time,
+                request_headers=final_headers
+            )
 
         except httpx.TimeoutException:
-            return f"Error: Request timed out after {timeout} seconds for {method.upper()} {url}"
+            execution_time = time.perf_counter() - start_time
+            return HttpResult.create_error(
+                url=url,
+                method=method,
+                error_message=f"Request timed out after {timeout} seconds",
+                execution_time=execution_time,
+                request_headers=final_headers
+            )
         except httpx.ConnectError as e:
-            return f"Error: Connection failed to {url} - {str(e)}"
+            execution_time = time.perf_counter() - start_time
+            return HttpResult.create_error(
+                url=url,
+                method=method,
+                error_message=f"Connection failed: {str(e)}",
+                execution_time=execution_time,
+                request_headers=final_headers
+            )
         except httpx.HTTPStatusError as e:
-            return f"Error: HTTP {e.response.status_code} - {str(e)}"
+            execution_time = time.perf_counter() - start_time
+            return HttpResult.create_error(
+                url=url,
+                method=method,
+                error_message=f"HTTP {e.response.status_code} error: {str(e)}",
+                execution_time=execution_time,
+                request_headers=final_headers
+            )
         except Exception as e:
-            return f"Error: Unexpected error during {method.upper()} {url} - {str(e)}"
+            execution_time = time.perf_counter() - start_time
+            return HttpResult.create_error(
+                url=url,
+                method=method,
+                error_message=f"Unexpected error: {str(e)}",
+                execution_time=execution_time,
+                request_headers=final_headers
+            )
 
 
 def _validate_http_arguments(url: str, method: str, timeout: int) -> str | None:

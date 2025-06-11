@@ -66,17 +66,19 @@ Continue until tool call limit is reached:
 
 TOOL SELECTION STRATEGY:
 
-1. ffuf: Start with comprehensive directory enumeration
-   - Use multiple wordlists (big.txt, medium.txt, common.txt)
+1. ffuf: Start with directory enumeration (ALWAYS pass timeout parameter)
+   - Use appropriate wordlists based on available time (common for quick scans, big for thorough)
    - Test different file extensions (.php, .asp, .jsp, .html, .txt, .bak)
    - Enumerate parameters and subdomains if applicable
+   - REQUIRED: ffuf_directory_scan(target="...", wordlist_type="...", extensions="...", timeout=N)
 
-2. nuclei: Run comprehensive vulnerability scans
-   - Execute multiple scans with different template categories
+2. nuclei: Run vulnerability scans (ALWAYS pass timeout parameter)
+   - Execute scans with targeted template categories based on time constraints
    - Target specific technologies discovered in reconnaissance
    - Re-run after discovering new endpoints
+   - REQUIRED: nuclei_scan_tool(target="...", tags=[...], timeout=N)
 
-3. curl: Manual exploitation and validation
+3. curl: Manual exploitation and validation (timeout handled automatically)
    - Test discovered endpoints for vulnerabilities
    - Attempt authentication bypass
    - Validate injection points
@@ -150,9 +152,33 @@ CURRENT TOOL USAGE STATUS:
 - Nuclei scans: {nuclei_used}/{nuclei_max} calls used
 - Ffuf scans: {ffuf_used}/{ffuf_max} calls used  
 - Curl commands: {curl_used}/{curl_max} calls used
-- Command timeout: {timeout_minutes} minutes per tool execution
+- Command timeout: {timeout_seconds} seconds per tool execution
 
-IMPORTANT: Respect these tool limits. Do not exceed the maximum allowed calls for each tool. Each command has a {timeout_minutes}-minute timeout, so choose appropriate scan parameters and wordlist sizes to complete within this timeframe. Plan your tool usage strategically to maximize coverage within these constraints.
+ESTIMATED EXECUTION TIMES (choose parameters accordingly):
+
+FFUF Directory Enumeration:
+- common wordlist (~4,000 entries): 60-120 seconds
+- medium wordlist (~20,000 entries): 200-400 seconds  
+- big wordlist (~80,000+ entries): 800-1500 seconds
+- Factor in: extensions multiply scan time (php,html,txt = 3x longer)
+
+NUCLEI Vulnerability Scanning:
+- Single tag (e.g., "cve"): 60-180 seconds
+- Multiple tags (e.g., "cve,exposure"): 120-300 seconds
+- All severity levels: 200-400 seconds
+- WordPress-specific: 80-150 seconds
+
+CURL HTTP Testing:
+- Single request: 5-15 seconds
+- Complex payload testing: 10-30 seconds
+
+TIMEOUT MANAGEMENT:
+- ALWAYS pass timeout parameter to tools that support it
+- Choose tool parameters that can complete within {timeout_seconds} seconds
+- Use smaller wordlists/fewer tags if time is limited
+- Prioritize fast, targeted scans over comprehensive slow scans
+
+IMPORTANT: Respect these tool limits and time constraints. Each command has a {timeout_seconds}-second timeout. Choose appropriate scan parameters to complete within this timeframe. Plan your tool usage strategically to maximize coverage within these constraints.
 
 Remember: Each call should build upon previous findings and expand the attack surface. Balance thoroughness with the available tool limits."""
 
@@ -161,6 +187,11 @@ PREVIOUS_SCAN_PROMPT = """
 PREVIOUS SCAN RESULTS & CONTEXT:
 {prev_scans}
 
+PREVIOUSLY EXECUTED TOOL CALLS:
+{prev_tool_calls}
+
+IMPORTANT: Do NOT repeat tool calls with identical parameters. The above list shows exactly which tools and arguments have already been used. Vary your parameters (wordlists, tags, targets, extensions, etc.) or use different tools to expand coverage.
+
 NEXT STEPS BASED ON FINDINGS:
 Based on the above results, continue your assessment. Look for:
 - Unexplored endpoints from directory enumeration
@@ -168,6 +199,7 @@ Based on the above results, continue your assessment. Look for:
 - Discovered services that require manual testing
 - Potential attack chains based on current findings
 - Areas where deeper enumeration is needed
+- New scan parameters based on discovered information
 """
 
 
@@ -189,7 +221,7 @@ class AssistantNode:
             ffuf_max=tools_calls.ffuf_calls_count_max,
             curl_used=tools_calls.curl_calls_count,
             curl_max=tools_calls.curl_calls_count_max,
-            timeout_minutes=int(timeout.total_seconds() / 60),
+            timeout_seconds=int(timeout.total_seconds()),
         )
 
         # Add comprehensive scan context if we have previous tool results
@@ -197,7 +229,14 @@ class AssistantNode:
             prev_scans = json.dumps(
                 [result.to_dict() for result in state["results"]], indent=2
             )
-            prompt += PREVIOUS_SCAN_PROMPT.format(prev_scans=prev_scans)
+            
+            # Generate list of previous tool calls to avoid duplicates
+            prev_tool_calls = self._generate_previous_tool_calls_summary(state["results"])
+            
+            prompt += PREVIOUS_SCAN_PROMPT.format(
+                prev_scans=prev_scans,
+                prev_tool_calls=prev_tool_calls
+            )
 
         # Only pass system message with context - no need for full conversation history
         # since all previous results are already included in the system prompt
@@ -207,6 +246,28 @@ class AssistantNode:
         return {
             "messages": [res],
             "call_count": state.get("call_count", 0) + 1,
-            "max_calls": state.get("max_calls", 100),
+            "max_calls": state.get("max_calls", 20),
             "tools_calls": tools_calls,
         }
+    
+    def _generate_previous_tool_calls_summary(self, results: list) -> str:
+        """Generate a summary of previous tool calls to avoid duplicates."""
+        tool_calls_summary = []
+        
+        for i, result in enumerate(results, 1):
+            if hasattr(result, 'tool_name') and result.tool_name:
+                tool_name = result.tool_name
+                tool_args = result.tool_arguments or {}
+                
+                # Format arguments nicely for readability
+                args_str = ", ".join([f"{k}={v}" for k, v in tool_args.items() if v is not None])
+                
+                if args_str:
+                    tool_calls_summary.append(f"{i}. {tool_name}({args_str})")
+                else:
+                    tool_calls_summary.append(f"{i}. {tool_name}()")
+        
+        if tool_calls_summary:
+            return "\n".join(tool_calls_summary)
+        else:
+            return "No previous tool calls recorded."

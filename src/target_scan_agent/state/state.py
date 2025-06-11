@@ -35,6 +35,20 @@ class TargetScan(BaseModel):
         default=None,
         description="A list of possible attacks or vulnerabilities identified during the scan with command examples",
     )
+    
+    # Tool call information to avoid duplicates
+    tool_name: str | None = Field(
+        default=None,
+        description="The name of the tool that was called (e.g., 'nuclei_scan_tool', 'ffuf_directory_scan', 'curl_tool')",
+    )
+    tool_arguments: dict | None = Field(
+        default=None,
+        description="The arguments passed to the tool when it was called",
+    )
+    tool_call_id: str | None = Field(
+        default=None,
+        description="Unique identifier for the tool call to avoid duplicates",
+    )
 
     def to_json(self) -> str:
         """Convert to JSON string for serialization."""

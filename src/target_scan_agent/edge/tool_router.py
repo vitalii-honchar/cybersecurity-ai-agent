@@ -2,24 +2,46 @@ from typing import Literal
 from langchain_core.messages import AIMessage
 from target_scan_agent.state import TargetScanState
 
-# Import the tool calling limit from assistant node
-TOOLS_CALLING_LIMIT = 50
-
 
 class ToolRouterEdge:
 
     def route(self, state: TargetScanState) -> Literal["tools", "generate_report"]:
-        """Route based on tool calls and call limits"""
+        """Route based on tool calls and limits"""
         last_message = state["messages"][-1]
-        call_count = state.get("call_count", 0)
+        call_count = state["call_count"]
+        max_calls = state["max_calls"]
 
-        # Hit the tool calling limit - generate final report
-        if call_count >= TOOLS_CALLING_LIMIT:
+        # Hit the global call limit - generate final report
+        if call_count >= max_calls:
             return "generate_report"
 
-        # LLM wants to use tools and we haven't hit limit
+        # Check if no tools are available at all
+        if not self.has_tools_available(state):
+            return "generate_report"
+
+        # LLM wants to use tools - let them execute
         if isinstance(last_message, AIMessage) and last_message.tool_calls:
             return "tools"
 
-        # No more tools needed or LLM decided to stop - generate report
+        # No tools requested or LLM decided to stop - generate report
         return "generate_report"
+    
+    def has_tools_available(self, state: TargetScanState) -> bool:
+        """Check if any tools are still available within their limits"""
+        call_count = state["call_count"]
+        max_calls = state["max_calls"]
+        tools_calls = state["tools_calls"]
+        
+        # Hit global limit
+        if call_count >= max_calls:
+            return False
+        
+        # Check if any individual tool has capacity remaining
+        if tools_calls.nuclei_calls_count < tools_calls.nuclei_calls_count_max:
+            return True
+        if tools_calls.ffuf_calls_count < tools_calls.ffuf_calls_count_max:
+            return True
+        if tools_calls.curl_calls_count < tools_calls.curl_calls_count_max:
+            return True
+        
+        return False
