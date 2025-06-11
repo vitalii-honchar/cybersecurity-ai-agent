@@ -177,7 +177,6 @@ class AssistantNode:
 
     def assistant(self, state: TargetScanState):
         target = state["target"]
-        messages = state.get("messages", [])
         timeout = state.get("timeout", timedelta(minutes=5))
         tools_calls = state.get("tools_calls", ToolsCalls())
 
@@ -200,8 +199,10 @@ class AssistantNode:
             )
             prompt += PREVIOUS_SCAN_PROMPT.format(prev_scans=prev_scans)
 
-        all_messages = messages + [SystemMessage(prompt)]
-        res = self.llm_with_tools.invoke(all_messages)
+        # Only pass system message with context - no need for full conversation history
+        # since all previous results are already included in the system prompt
+        system_message = SystemMessage(prompt)
+        res = self.llm_with_tools.invoke([system_message])
 
         return {
             "messages": [res],

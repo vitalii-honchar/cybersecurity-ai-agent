@@ -132,6 +132,8 @@ async def ffuf_directory_scan(
     Returns:
         FfufScanResult with findings, metadata, and helper methods
     """
+
+    wordlist_type = "common"
     # Validate arguments first
     validation_error = _validate_ffuf_arguments(target, wordlist_type, extensions)
     if validation_error:

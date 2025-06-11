@@ -57,11 +57,11 @@ class ProcessToolResultNode:
         tools_calls = state.get("tools_calls", ToolsCalls())
         new_results = []
         call_count = state.get("call_count", 0)
-        
+
         for msg in reversed(messages):
             if hasattr(msg, "type") and msg.type == "tool":
                 call_count += 1
-                
+
                 # Increment tool-specific counters based on tool name
                 if msg.name == "nuclei_scan_tool":
                     tools_calls.nuclei_calls_count += 1
@@ -69,27 +69,25 @@ class ProcessToolResultNode:
                     tools_calls.ffuf_calls_count += 1
                 elif msg.name == "curl_tool":
                     tools_calls.curl_calls_count += 1
-                
+
                 processed_result = self._process_tool_message_with_llm(msg)
                 new_results.append(processed_result)
             else:
                 break
 
         return {
-            "results": list(reversed(new_results)), 
+            "results": list(reversed(new_results)),
             "call_count": call_count,
-            "tools_calls": tools_calls
+            "tools_calls": tools_calls,
         }
 
     def _process_tool_message_with_llm(self, msg) -> TargetScan:
         """Process tool message using LLM to create intelligent summary."""
-        tool_data = json.dumps(msg.content, indent=2)
-
         res = self.llm.with_structured_output(TargetScan).invoke(
             [
                 SystemMessage(content=system_prompt),
                 HumanMessage(
-                    content=human_prompt.format(tool=msg.name, tool_data=tool_data)
+                    content=human_prompt.format(tool=msg.name, tool_data=msg.content)
                 ),
             ]
         )
