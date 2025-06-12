@@ -1,6 +1,7 @@
 from langgraph.graph import START, StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+from langgraph.checkpoint.memory import MemorySaver
 from target_scan_agent.state import TargetScanState
 from target_scan_agent.node import (
     AssistantNode,
@@ -50,4 +51,6 @@ def create_graph() -> CompiledStateGraph:
     builder.add_edge("process_results", "assistant")
     builder.add_edge("generate_report", END)
 
-    return builder.compile()
+    # Add memory checkpointer for state persistence
+    memory = MemorySaver()
+    return builder.compile(checkpointer=memory)
