@@ -1,9 +1,7 @@
 from target_scan_agent.state import (
     TargetScanState,
     TargetScanToolResult,
-    ToolsCalls,
 )
-from target_scan_agent.tools.vulnerability.models import NucleiScanResult
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import (
     ToolMessage,
@@ -32,7 +30,11 @@ class ProcessToolResultNode:
         for msg in reversed(messages):
             if isinstance(msg, ToolMessage):
                 if not call_id_to_result.get(msg.tool_call_id):
-                    self._increment_tool_call_count(tools_calls, msg.name)
+                    if msg.name is not None:
+                        tools_calls.calls[msg.name] = (
+                            tools_calls.calls.get(msg.name, 0) + 1
+                        )
+
                     res = TargetScanToolResult(
                         result=str(msg.content),
                         tool_name=msg.name,
@@ -56,16 +58,3 @@ class ProcessToolResultNode:
                 for tool_call in msg.tool_calls:
                     if tool_call.get("id") == tool_call_id:
                         return tool_call.get("args")
-
-    def _increment_tool_call_count(
-        self, tools_calls: ToolsCalls, tool_name: str | None
-    ):
-        """Increment the tool call count based on the tool name."""
-        if tool_name == "nuclei_scan_tool":
-            tools_calls.nuclei_calls_count += 1
-        elif tool_name == "ffuf_directory_scan":
-            tools_calls.ffuf_calls_count += 1
-        elif tool_name == "curl_tool":
-            tools_calls.curl_calls_count += 1
-        else:
-            logging.warning(f"Unknown tool name: {tool_name}")

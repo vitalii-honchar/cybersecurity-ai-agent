@@ -3,6 +3,7 @@ from langgraph.graph import MessagesState
 from pydantic import BaseModel, Field
 from typing import Annotated, Literal
 from datetime import timedelta
+from .tools import Tool, ToolName
 
 
 class Target(BaseModel):
@@ -60,40 +61,21 @@ class TargetScanOutput(BaseModel):
 
 
 class ToolsCalls(BaseModel):
-    nuclei_calls_count: int = Field(
-        default=0,
-        description="Number of nuclei scans performed.",
+    limits: dict[ToolName, int] = Field(
+        description="A dictionary mapping tool names to their call limits."
     )
-    nuclei_calls_count_max: int = Field(
-        default=3,
-        description="Maximum number of nuclei scans allowed.",
-    )
-
-    ffuf_calls_count: int = Field(
-        default=0,
-        description="Number of ffuf directory scans performed.",
-    )
-    ffuf_calls_count_max: int = Field(
-        default=3,
-        description="Maximum number of ffuf directory scans allowed.",
-    )
-
-    curl_calls_count: int = Field(
-        default=0,
-        description="Number of curl commands executed.",
-    )
-    curl_calls_count_max: int = Field(
-        default=20,
-        description="Maximum number of curl commands allowed.",
+    calls: dict[ToolName, int] = Field(
+        description="A dictionary mapping tool names to the number of times they have been called.",
     )
 
 
 class TargetScanState(MessagesState):
     context: str
     target: Target
+    tools: list[Tool]
     tools_calls: ToolsCalls
     timeout: timedelta
     results: Annotated[list[TargetScanToolResult], operator.add]
     summary: str | None
     call_count: int
-    max_calls: int  # max recursion calls
+    max_calls: int
