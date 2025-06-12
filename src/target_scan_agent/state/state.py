@@ -53,6 +53,7 @@ class TargetScanToolResult(BaseModel):
     summary: TargetScanToolSummary = Field(
         description="A summary of the scan results, including any vulnerabilities or insights found.",
     )
+    result: str = Field(description="The raw result of the tool execution.")
     tool_name: str | None = Field(
         default=None,
         description="The name of the tool that was called",

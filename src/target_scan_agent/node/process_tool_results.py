@@ -81,6 +81,7 @@ class ProcessToolResultNode:
                     self._increment_tool_call_count(tools_calls, msg.name)
                     res = TargetScanToolResult(
                         summary=self._generate_tool_result_summary(msg),
+                        result=str(msg.content),
                         tool_name=msg.name,
                         tool_arguments=self._find_tool_call_args(
                             messages, msg.tool_call_id
