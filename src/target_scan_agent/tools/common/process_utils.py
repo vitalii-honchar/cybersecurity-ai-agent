@@ -27,7 +27,7 @@ def execute_process(cmd: list[str], cwd: Optional[str] = None) -> subprocess.Pop
     """Execute subprocess with consistent configuration."""
     if cwd is None:
         cwd = os.path.expanduser("~")
-    
+
     return subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -51,20 +51,20 @@ def terminate_process(process: Optional[subprocess.Popen]):
 
 
 async def wait_for_process_completion(
-    process: subprocess.Popen, 
-    timeout: int, 
+    process: subprocess.Popen,
+    timeout: int,
     start_time: float,
-    progress_interval: int = 30
-) -> bool:
+    progress_interval: int = 30,
+) -> tuple[bool, str, str]:
     """
     Wait for process completion with timeout and progress logging.
-    
+
     Args:
         process: The subprocess to monitor
         timeout: Maximum time to wait in seconds
         start_time: When the process was started
         progress_interval: How often to log progress in seconds
-        
+
     Returns:
         True if process completed successfully, False if timed out
     """
@@ -75,16 +75,17 @@ async def wait_for_process_completion(
         if poll_result is not None:
             logging.info(f"✅ Process completed (exit code: {poll_result})")
             # Ignore stdout/stderr
-            process.communicate()
-            return True  # Process completed successfully
+            stdout, stderr = process.communicate()
+            return poll_result == 0, stdout, stderr
 
         elapsed = time.time() - start_time
         if elapsed > timeout:
-            logging.info(f"⏱️ Timeout reached ({timeout}s), collecting partial results...")
+            logging.info(
+                f"⏱️ Timeout reached ({timeout}s), collecting partial results..."
+            )
             terminate_process(process)
-            # Ignore stdout/stderr
-            process.communicate()
-            return False  # Process was interrupted by timeout
+            stdout, stderr = process.communicate()
+            return False, stdout, stderr
 
         if time.time() - last_check_time > progress_interval:
             logging.info(f"📊 Scan in progress... ({elapsed:.0f}s elapsed)")

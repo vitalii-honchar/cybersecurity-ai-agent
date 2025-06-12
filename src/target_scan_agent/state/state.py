@@ -1,7 +1,7 @@
 import operator
 from langgraph.graph import MessagesState
 from pydantic import BaseModel, Field
-from typing import Annotated, Dict, Any
+from typing import Annotated, Literal
 from datetime import timedelta
 
 
@@ -18,12 +18,15 @@ class Target(BaseModel):
         return self.model_dump(mode="json")
 
 
-class TargetScan(BaseModel):
+SeverityLevel = Literal["info", "low", "medium", "high", "critical"]
+
+
+class TargetScanToolSummary(BaseModel):
     name: str | None = Field(
         default=None,
         description="The name of the scan result, if applicable.",
     )
-    severity: str | None = Field(
+    severity: SeverityLevel | None = Field(
         default=None,
         description="The severity level of the scan result, if applicable.",
     )
@@ -33,21 +36,33 @@ class TargetScan(BaseModel):
     )
     possible_attacks: list[str] | None = Field(
         default=None,
+        min_length=3,
         description="A list of possible attacks or vulnerabilities identified during the scan with command examples",
     )
-    
-    # Tool call information to avoid duplicates
+
+    def to_json(self) -> str:
+        """Convert to JSON string for serialization."""
+        return self.model_dump_json()
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
+
+
+class TargetScanToolResult(BaseModel):
+    summary: TargetScanToolSummary = Field(
+        description="A summary of the scan results, including any vulnerabilities or insights found.",
+    )
     tool_name: str | None = Field(
         default=None,
-        description="The name of the tool that was called (e.g., 'nuclei_scan_tool', 'ffuf_directory_scan', 'curl_tool')",
+        description="The name of the tool that was called",
     )
     tool_arguments: dict | None = Field(
         default=None,
         description="The arguments passed to the tool when it was called",
     )
-    tool_call_id: str | None = Field(
-        default=None,
-        description="Unique identifier for the tool call to avoid duplicates",
+    tool_call_id: str = Field(
+        description="Unique identifier for the tool call to avoid duplicates"
     )
 
     def to_json(self) -> str:
@@ -108,7 +123,7 @@ class TargetScanState(MessagesState):
     target: Target
     tools_calls: ToolsCalls
     timeout: timedelta
-    results: Annotated[list[TargetScan], operator.add]
+    results: Annotated[list[TargetScanToolResult], operator.add]
     summary: str | None
     call_count: int
-    max_calls: int
+    max_calls: int  # max recursion calls

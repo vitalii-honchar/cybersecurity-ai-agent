@@ -1,7 +1,19 @@
-from target_scan_agent.state import TargetScanState, TargetScan, ToolsCalls
+from target_scan_agent.state import (
+    TargetScanState,
+    TargetScanToolResult,
+    ToolsCalls,
+    TargetScanToolSummary,
+)
 from target_scan_agent.tools.vulnerability.models import NucleiScanResult
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import (
+    SystemMessage,
+    HumanMessage,
+    ToolMessage,
+    ToolCall,
+    AnyMessage,
+    AIMessage,
+)
 import json
 import logging
 from dataclasses import dataclass
@@ -54,90 +66,66 @@ class ProcessToolResultNode:
 
     def process_tool_results(self, state: TargetScanState):
         messages = state["messages"]
-        tools_calls = state.get("tools_calls", ToolsCalls())
+        tools_calls = state["tools_calls"]
         new_results = []
-        call_count = state.get("call_count", 0)
-        
-        # Find the AI message with tool calls to get original call info
-        ai_message_with_tool_calls = None
-        for msg in reversed(messages):
-            if hasattr(msg, "tool_calls") and msg.tool_calls:
-                ai_message_with_tool_calls = msg
-                break
+
+        results = state.get("results", [])
+
+        call_id_to_result = {
+            result.tool_call_id: result for result in results if result.tool_call_id
+        }
 
         for msg in reversed(messages):
-            if hasattr(msg, "type") and msg.type == "tool":
-                call_count += 1
-
-                # Increment tool-specific counters based on tool name
-                if msg.name == "nuclei_scan_tool":
-                    tools_calls.nuclei_calls_count += 1
-                elif msg.name == "ffuf_directory_scan":
-                    tools_calls.ffuf_calls_count += 1
-                elif msg.name == "curl_tool":
-                    tools_calls.curl_calls_count += 1
-
-                # Find the original tool call info for this tool result
-                tool_call_id = msg.tool_call_id if hasattr(msg, 'tool_call_id') else None
-                original_tool_call = self._find_original_tool_call(
-                    ai_message_with_tool_calls, msg.name, tool_call_id
-                )
-                
-                processed_result = self._process_tool_message_with_llm(msg, original_tool_call)
-                new_results.append(processed_result)
-            else:
-                break
+            if isinstance(msg, ToolMessage):
+                if not call_id_to_result.get(msg.tool_call_id):
+                    self._increment_tool_call_count(tools_calls, msg.name)
+                    res = TargetScanToolResult(
+                        summary=self._generate_tool_result_summary(msg),
+                        tool_name=msg.name,
+                        tool_arguments=self._find_tool_call_args(
+                            messages, msg.tool_call_id
+                        ),
+                        tool_call_id=msg.tool_call_id,
+                    )
+                    new_results.append(res)
 
         return {
             "results": list(reversed(new_results)),
-            "call_count": call_count,
             "tools_calls": tools_calls,
         }
 
-    def _find_original_tool_call(self, ai_message, tool_name: str, tool_call_id: str | None = None) -> dict | None:
-        """Find the original tool call that matches the tool result."""
-        if not ai_message or not hasattr(ai_message, 'tool_calls'):
-            return None
-        
-        for tool_call in ai_message.tool_calls:
-            # Match by tool_call_id if available, otherwise by tool name
-            if tool_call_id and tool_call.get('id') == tool_call_id:
-                return tool_call
-            elif tool_call.get('name') == tool_name:
-                return tool_call
-        
-        return None
+    def _find_tool_call_args(
+        self, messages: list[AnyMessage], tool_call_id: str
+    ) -> dict | None:
+        for msg in reversed(messages):
+            if isinstance(msg, AIMessage):
+                for tool_call in msg.tool_calls:
+                    if tool_call.get("id") == tool_call_id:
+                        return tool_call.get("args")
 
-    def _process_tool_message_with_llm(self, msg, original_tool_call: dict | None = None) -> TargetScan:
-        """Process tool message using LLM to create intelligent summary."""
-        # Convert tool result to JSON for better LLM parsing
-        if hasattr(msg.content, 'to_json'):
-            tool_data = msg.content.to_json()
-        elif hasattr(msg.content, 'to_dict'):
-            tool_data = json.dumps(msg.content.to_dict(), indent=2)
-        else:
-            tool_data = json.dumps(msg.content, indent=2, default=str)
+    def _generate_tool_result_summary(self, msg: ToolMessage) -> TargetScanToolSummary:
+        """Generate a summary for the tool result using LLM."""
 
-        res = self.llm.with_structured_output(TargetScan).invoke(
+        summary = self.llm.with_structured_output(TargetScanToolSummary).invoke(
             [
                 SystemMessage(content=system_prompt),
                 HumanMessage(
-                    content=human_prompt.format(tool=msg.name, tool_data=tool_data)
+                    content=human_prompt.format(tool=msg.name, tool_data=msg.content)
                 ),
             ]
         )
 
-        if isinstance(res, TargetScan):
-            # Add the original tool call information to avoid duplicates
-            if original_tool_call:
-                res.tool_name = original_tool_call.get('name')
-                res.tool_arguments = original_tool_call.get('args', {})
-                res.tool_call_id = original_tool_call.get('id')
-            else:
-                # Fallback if we couldn't find the original call
-                res.tool_name = msg.name
-                res.tool_arguments = {}
-                res.tool_call_id = None
-            
-            return res
-        raise ValueError("LLM did not return a valid TargetScan object")
+        return TargetScanToolSummary.model_validate(summary)
+
+    def _increment_tool_call_count(
+        self, tools_calls: ToolsCalls, tool_name: str | None
+    ):
+        """Increment the tool call count based on the tool name."""
+        if tool_name == "nuclei_scan_tool":
+            tools_calls.nuclei_calls_count += 1
+        elif tool_name == "ffuf_directory_scan":
+            tools_calls.ffuf_calls_count += 1
+        elif tool_name == "curl_tool":
+            tools_calls.curl_calls_count += 1
+        else:
+            logging.warning(f"Unknown tool name: {tool_name}")

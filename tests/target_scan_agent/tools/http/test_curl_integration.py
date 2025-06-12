@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import patch
 
-from target_scan_agent.tools.http.curl_tool import curl_tool, curl_get, curl_post, curl_head
+from target_scan_agent.tools.http.curl_tool import curl_tool
 from target_scan_agent.tools.http.models import CurlResult
 
 
@@ -14,20 +14,20 @@ class TestCurlToolIntegration:
         """Test basic GET request functionality."""
         result = await curl_tool("http://httpbin.org/get")
         
-        assert isinstance(result, CurlResult)
-        assert result.is_success()
-        assert result.exit_code == 0
-        assert "httpbin.org" in result.content
-        assert result.execution_time > 0
-        assert result.error is None
+        assert isinstance(result, dict)
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert "httpbin.org" in result['content']
+        assert result['execution_time'] > 0
     
     @pytest.mark.asyncio
     async def test_get_with_headers(self):
         """Test GET request with custom headers."""
         result = await curl_tool('-H "User-Agent: TestAgent/1.0" http://httpbin.org/headers')
         
-        assert result.is_success()
-        assert "TestAgent/1.0" in result.content
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert "TestAgent/1.0" in result['content']
     
     @pytest.mark.asyncio
     async def test_post_with_json_data(self):
@@ -35,36 +35,40 @@ class TestCurlToolIntegration:
         json_data = '{"test": "data", "number": 123}'
         result = await curl_tool(f'-X POST -H "Content-Type: application/json" -d \'{json_data}\' http://httpbin.org/post')
         
-        assert result.is_success()
-        assert "test" in result.content
-        assert "data" in result.content
-        assert "123" in result.content
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert "test" in result['content']
+        assert "data" in result['content']
+        assert "123" in result['content']
     
     @pytest.mark.asyncio
     async def test_authentication(self):
         """Test basic authentication."""
         result = await curl_tool("-u user:passwd http://httpbin.org/basic-auth/user/passwd")
         
-        assert result.is_success()
-        assert "authenticated" in result.content
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert "authenticated" in result['content']
     
     @pytest.mark.asyncio
     async def test_follow_redirects(self):
         """Test following redirects with -L flag."""
         result = await curl_tool("-L http://httpbin.org/redirect/2")
         
-        assert result.is_success()
+        assert result['exit_code'] == 0
+        assert result['error'] is None
         # Should follow redirects and reach the final destination
-        assert "httpbin.org/get" in result.content
+        assert "httpbin.org/get" in result['content']
     
     @pytest.mark.asyncio
     async def test_head_request(self):
         """Test HEAD request to get only headers."""
         result = await curl_tool("-I http://httpbin.org/get")
         
-        assert result.is_success()
-        assert "HTTP/" in result.content
-        assert "Content-Type:" in result.content
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert "HTTP/" in result['content']
+        assert "Content-Type:" in result['content']
     
     @pytest.mark.asyncio
     async def test_swagger_documentation_retrieval(self):
@@ -72,18 +76,18 @@ class TestCurlToolIntegration:
         # Using a public API that provides OpenAPI/Swagger docs
         result = await curl_tool("-L -k https://petstore.swagger.io/v2/swagger.json")
         
-        assert result.is_success()
+        assert result['exit_code'] == 0
+        assert result['error'] is None
         # Should contain typical Swagger/OpenAPI structure
-        assert any(keyword in result.content.lower() for keyword in ["swagger", "openapi", "paths", "definitions"])
+        assert any(keyword in result['content'].lower() for keyword in ["swagger", "openapi", "paths", "definitions"])
     
     @pytest.mark.asyncio
     async def test_error_handling_invalid_url(self):
         """Test error handling with invalid URL."""
         result = await curl_tool("http://invalid-domain-that-does-not-exist.com")
         
-        assert not result.is_success()
-        assert result.exit_code != 0
-        assert result.error is not None
+        assert result['exit_code'] != 0
+        assert result['error'] is not None
     
     @pytest.mark.asyncio
     async def test_timeout_handling(self):
@@ -91,26 +95,29 @@ class TestCurlToolIntegration:
         # Using httpbin's delay endpoint to test timeout
         result = await curl_tool("http://httpbin.org/delay/5", timeout=2)
         
-        assert not result.is_success()
-        assert result.exit_code == 124  # Timeout exit code
-        assert "timed out" in result.error.lower()
+        assert result['exit_code'] == 124  # Timeout exit code
+        assert result['error'] is not None
+        assert "timed out" in result['error'].lower()
     
     @pytest.mark.asyncio
-    async def test_convenience_functions(self):
-        """Test convenience functions curl_get, curl_post, curl_head."""
-        # Test curl_get
-        get_result = await curl_get("http://httpbin.org/get")
-        assert get_result.is_success()
+    async def test_common_http_methods(self):
+        """Test common HTTP methods using curl_tool directly."""
+        # Test GET request
+        get_result = await curl_tool("http://httpbin.org/get")
+        assert get_result['exit_code'] == 0
+        assert get_result['error'] is None
         
-        # Test curl_post
-        post_result = await curl_post("http://httpbin.org/post", json_data='{"key": "value"}')
-        assert post_result.is_success()
-        assert "key" in post_result.content
+        # Test POST request with JSON
+        post_result = await curl_tool('-X POST -H "Content-Type: application/json" -d \'{"key": "value"}\' http://httpbin.org/post')
+        assert post_result['exit_code'] == 0
+        assert post_result['error'] is None
+        assert "key" in post_result['content']
         
-        # Test curl_head
-        head_result = await curl_head("http://httpbin.org/get")
-        assert head_result.is_success()
-        assert "HTTP/" in head_result.content
+        # Test HEAD request
+        head_result = await curl_tool("-I http://httpbin.org/get")
+        assert head_result['exit_code'] == 0
+        assert head_result['error'] is None
+        assert "HTTP/" in head_result['content']
     
     @pytest.mark.asyncio
     async def test_vulnerable_app_testing(self):
@@ -119,18 +126,20 @@ class TestCurlToolIntegration:
         
         # 1. Test for SQL injection detection (using httpbin to simulate)
         sqli_payload = "' OR '1'='1"
-        result = await curl_tool("-G", "-d", f"id={sqli_payload}", "http://httpbin.org/get")
-        assert result.is_success()
-        assert sqli_payload in result.content
+        result = await curl_tool(f"-G -d id={sqli_payload} http://httpbin.org/get")
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert sqli_payload in result['content']
         
         # 2. Test directory traversal (using httpbin path endpoint)
         traversal_payload = "../../../etc/passwd"
-        result = await curl_tool(f"http://httpbin.org/status/200")  # Safe endpoint for testing
-        assert result.is_success()
+        result = await curl_tool("http://httpbin.org/status/200")  # Safe endpoint for testing
+        assert result['exit_code'] == 0
+        assert result['error'] is None
         
         # 3. Test for admin panel discovery simulation
         result = await curl_tool("http://httpbin.org/status/404")  # Simulate not found
-        assert not result.is_success() or "404" in result.content
+        assert result['exit_code'] != 0 or "404" in result['content']
     
     @pytest.mark.asyncio
     async def test_structured_response_format(self):
@@ -138,36 +147,31 @@ class TestCurlToolIntegration:
         result = await curl_tool("http://httpbin.org/get")
         
         # Verify all required fields are present
-        assert hasattr(result, 'command')
-        assert hasattr(result, 'content')
-        assert hasattr(result, 'exit_code')
-        assert hasattr(result, 'execution_time')
-        assert hasattr(result, 'timestamp')
-        assert hasattr(result, 'error')
+        assert 'command' in result
+        assert 'content' in result
+        assert 'exit_code' in result
+        assert 'execution_time' in result
+        assert 'timestamp' in result
+        assert 'error' in result
         
         # Verify command contains curl -v
-        assert "curl -v" in result.command
+        assert "curl -v" in result['command']
         
         # Verify content contains verbose output
-        assert len(result.content) > 0
+        assert len(result['content']) > 0
         
-        # Test serialization
-        json_str = result.to_json()
-        assert isinstance(json_str, str)
-        assert "command" in json_str
-        
-        dict_data = result.to_dict()
-        assert isinstance(dict_data, dict)
-        assert "command" in dict_data
+        # Test that result is already a dict
+        assert isinstance(result, dict)
+        assert "command" in result
     
     @pytest.mark.asyncio 
     async def test_no_arguments_error(self):
         """Test error handling when no arguments provided."""
         result = await curl_tool("")
         
-        assert not result.is_success()
-        assert result.error is not None
-        assert "No arguments provided" in result.error
+        assert result['exit_code'] != 0
+        assert result['error'] is not None
+        assert "No arguments provided" in result['error']
 
 
 class TestCurlToolUnit:
@@ -184,10 +188,10 @@ class TestCurlToolUnit:
         
         result = await curl_tool("http://example.com")
         
-        assert result.is_success()
-        assert result.content == "Mock curl output"
-        assert result.exit_code == 0
-        assert "curl -v http://example.com" in result.command
+        assert result['exit_code'] == 0
+        assert result['error'] is None
+        assert result['content'] == "Mock curl output"
+        assert "curl -v http://example.com" in result['command']
     
     @pytest.mark.asyncio
     @patch('target_scan_agent.tools.http.curl_tool.subprocess.Popen')
@@ -200,7 +204,6 @@ class TestCurlToolUnit:
         
         result = await curl_tool("http://invalid-url")
         
-        assert not result.is_success()
-        assert result.exit_code == 1
-        assert result.error is not None
-        assert "failed with exit code 1" in result.error
+        assert result['exit_code'] == 1
+        assert result['error'] is not None
+        assert "failed with exit code 1" in result['error']

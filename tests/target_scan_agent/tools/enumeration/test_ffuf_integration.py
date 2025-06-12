@@ -17,68 +17,88 @@ class TestFfufIntegration:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
-    def validate_ffuf_scan_result(self, result: FfufScanResult):
+    def validate_ffuf_scan_result(self, result: dict):
         """Validate ffuf scan result structure."""
-        assert isinstance(result, FfufScanResult)
+        assert isinstance(result, dict)
         
-        if result.error:
-            print(f"Scan error: {result.error}")
+        if result.get('error'):
+            print(f"Scan error: {result['error']}")
             return True
             
-        print(f"Scan completed: {result.scan_completed}")
-        print(f"Target: {result.target}")
-        print(f"Wordlist: {result.wordlist_type} ({result.wordlist_size:,} entries)")
-        print(f"Extensions: {result.extensions}")
-        print(f"Total findings: {result.count}")
+        print(f"Scan completed: {result['scan_completed']}")
+        print(f"Target: {result['target']}")
+        print(f"Wordlist: {result['wordlist_type']} ({result['wordlist_size']:,} entries)")
+        print(f"Extensions: {result['extensions']}")
+        print(f"Total findings: {result['count']}")
         
-        if result.scan_duration:
-            print(f"Scan duration: {result.scan_duration:.2f} seconds")
+        if result.get('scan_duration'):
+            print(f"Scan duration: {result['scan_duration']:.2f} seconds")
 
-        if not result.has_findings():
+        if result['count'] == 0:
             print("No findings detected")
             return True
 
-        # Test helper methods
-        accessible_findings = result.get_accessible_findings()
-        forbidden_findings = result.get_forbidden_findings()
-        interesting_findings = result.get_interesting_findings()
-        status_summary = result.get_status_summary()
+        # Count findings by status
+        accessible_count = len([f for f in result['findings'] if f['status'] == 200])
+        forbidden_count = len([f for f in result['findings'] if f['status'] == 403])
+        interesting_count = len([f for f in result['findings'] if f['status'] in [200, 403, 401, 500]])
+        status_summary = {}
+        for f in result['findings']:
+            status_summary[f['status']] = status_summary.get(f['status'], 0) + 1
         
-        print(f"Accessible findings (200): {len(accessible_findings)}")
-        print(f"Forbidden findings (403): {len(forbidden_findings)}")
-        print(f"Interesting findings: {len(interesting_findings)}")
+        print(f"Accessible findings (200): {accessible_count}")
+        print(f"Forbidden findings (403): {forbidden_count}")
+        print(f"Interesting findings: {interesting_count}")
         print(f"Status summary: {status_summary}")
         
         # Display findings by category
-        for i, finding in enumerate(result.findings[:5], 1):  # Show first 5
-            print(f"Finding {i}: {finding.url}")
-            print(f"  Status: {finding.status}")
-            print(f"  Size: {finding.size_formatted}")
-            print(f"  Interesting: {finding.is_interesting}")
-            print(f"  Accessible: {finding.is_accessible}")
+        for i, finding in enumerate(result['findings'][:5], 1):  # Show first 5
+            length = finding['length']
+            if length < 1024:
+                size_formatted = f"{length} bytes"
+            elif length < 1024 * 1024:
+                size_formatted = f"{length / 1024:.1f} KB"
+            else:
+                size_formatted = f"{length / (1024 * 1024):.1f} MB"
+                
+            print(f"Finding {i}: {finding['url']}")
+            print(f"  Status: {finding['status']}")
+            print(f"  Size: {size_formatted}")
+            print(f"  Interesting: {finding['status'] in [200, 403, 401, 500]}")
+            print(f"  Accessible: {finding['status'] == 200}")
             
-        if result.count > 5:
-            print(f"... and {result.count - 5} more findings")
+        if result['count'] > 5:
+            print(f"... and {result['count'] - 5} more findings")
             
-        # Test specific helper methods
-        admin_panels = result.get_admin_panels()
-        config_files = result.get_potential_config_files()
-        largest_findings = result.get_largest_findings(3)
+        # Test specific filtering
+        admin_patterns = ["admin", "dashboard", "panel", "manage", "control"]
+        config_patterns = ["config", "settings", ".env", "web.config", "application.properties", "database.yml", "secrets"]
+        
+        admin_panels = [f for f in result['findings'] if any(pattern in f['url'].lower() for pattern in admin_patterns)]
+        config_files = [f for f in result['findings'] if any(pattern in f['url'].lower() for pattern in config_patterns)]
+        largest_findings = sorted(result['findings'], key=lambda f: f['length'], reverse=True)[:3]
         
         if admin_panels:
             print(f"Potential admin panels: {len(admin_panels)}")
             for panel in admin_panels:
-                print(f"  - {panel.url}")
+                print(f"  - {panel['url']}")
                 
         if config_files:
             print(f"Potential config files: {len(config_files)}")
             for config in config_files:
-                print(f"  - {config.url}")
+                print(f"  - {config['url']}")
                 
         if largest_findings:
             print(f"Largest responses:")
             for finding in largest_findings:
-                print(f"  - {finding.url} ({finding.size_formatted})")
+                length = finding['length']
+                if length < 1024:
+                    size_formatted = f"{length} bytes"
+                elif length < 1024 * 1024:
+                    size_formatted = f"{length / 1024:.1f} KB"
+                else:
+                    size_formatted = f"{length / (1024 * 1024):.1f} MB"
+                print(f"  - {finding['url']} ({size_formatted})")
         
         return True
 
@@ -101,23 +121,21 @@ class TestFfufIntegration:
         print("=" * 50)
 
         # Basic validation
-        assert isinstance(result, FfufScanResult)
+        assert isinstance(result, dict)
 
         # Validate and display results
         self.validate_ffuf_scan_result(result)
 
         # Validate result structure
-        assert result.target == fastapi_server
-        assert result.wordlist_type == "common"
-        assert result.extensions == "html,json,txt"
-        assert isinstance(result.count, int)
-        assert isinstance(result.scan_completed, bool)
+        assert result['target'] == fastapi_server
+        assert result['wordlist_type'] == "common"
+        assert result['extensions'] == "html,json,txt"
+        assert isinstance(result['count'], int)
+        assert isinstance(result['scan_completed'], bool)
         
-        # Test that helper methods work without errors
-        _ = result.get_status_summary()
-        _ = result.get_interesting_findings()
-        _ = result.get_accessible_findings()
-        _ = result.has_findings()
+        # Test that basic access works without errors
+        assert 'findings' in result
+        assert isinstance(result['findings'], list)
 
         print("=" * 50)
         print("✅ Test completed successfully!")
@@ -140,14 +158,14 @@ class TestFfufIntegration:
         print("=" * 50)
 
         # Should return error result
-        assert isinstance(result, FfufScanResult)
-        assert result.error is not None
-        assert "not found" in result.error.lower()
-        assert result.count == 0
-        assert len(result.findings) == 0
-        assert result.scan_completed == False
+        assert isinstance(result, dict)
+        assert result['error'] is not None
+        assert "not found" in result['error'].lower()
+        assert result['count'] == 0
+        assert len(result['findings']) == 0
+        assert result['scan_completed'] == False
 
-        print(f"Error message: {result.error}")
+        print(f"Error message: {result['error']}")
         print("=" * 50)
         print("✅ Error handling test completed successfully!")
 

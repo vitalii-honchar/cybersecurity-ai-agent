@@ -25,23 +25,13 @@ class ToolRouterEdge:
 
         # No tools requested or LLM decided to stop - generate report
         return "generate_report"
-    
+
     def has_tools_available(self, state: TargetScanState) -> bool:
         """Check if any tools are still available within their limits"""
-        call_count = state["call_count"]
-        max_calls = state["max_calls"]
         tools_calls = state["tools_calls"]
-        
-        # Hit global limit
-        if call_count >= max_calls:
-            return False
-        
-        # Check if any individual tool has capacity remaining
-        if tools_calls.nuclei_calls_count < tools_calls.nuclei_calls_count_max:
-            return True
-        if tools_calls.ffuf_calls_count < tools_calls.ffuf_calls_count_max:
-            return True
-        if tools_calls.curl_calls_count < tools_calls.curl_calls_count_max:
-            return True
-        
-        return False
+
+        return (
+            tools_calls.nuclei_calls_count < tools_calls.nuclei_calls_count_max
+            or tools_calls.ffuf_calls_count < tools_calls.ffuf_calls_count_max
+            or tools_calls.curl_calls_count < tools_calls.curl_calls_count_max
+        )

@@ -119,18 +119,18 @@ async def ffuf_directory_scan(
     wordlist_type: str = "common",
     extensions: str = "php,html,js,txt",
     timeout: Optional[int] = None,
-) -> FfufScanResult:
+) -> dict:
     """
     Fast web directory discovery using ffuf with structured output.
 
     Args:
         target: Target URL to scan (e.g., "http://localhost:8000")
-        wordlist_type: Choose scanning coverage level - "common", "medium", or "big"
+        wordlist_type: Choose scanning coverage level - "common" or "small"
         extensions: File extensions to test, comma-separated (e.g., "php,html,js,txt")
         timeout: Custom timeout in seconds (optional, auto-calculated if not provided)
 
     Returns:
-        FfufScanResult with findings, metadata, and helper methods
+        dict: JSON representation of scan results with findings, metadata, and helper methods
     """
 
     wordlist_type = "common"
@@ -143,7 +143,7 @@ async def ffuf_directory_scan(
             wordlist_type=wordlist_type,
             wordlist_size=0,
             extensions=extensions,
-        )
+        ).to_dict()
     process = None
     temp_file = None
     start_time = time.time()
@@ -157,7 +157,7 @@ async def ffuf_directory_scan(
                 target=target,
                 wordlist_type=wordlist_type,
                 extensions=extensions,
-            )
+            ).to_dict()
 
         # Get wordlist size
         wordlist_size = count_lines_in_file(wordlist_path)
@@ -180,7 +180,9 @@ async def ffuf_directory_scan(
 
         # Execute process
         process = execute_process(cmd)
-        scan_completed = await wait_for_process_completion(process, timeout, start_time)
+        scan_completed, _, _ = await wait_for_process_completion(
+            process, timeout, start_time
+        )
 
         # Parse results
         findings = _parse_ffuf_results(temp_file)
@@ -197,7 +199,7 @@ async def ffuf_directory_scan(
             wordlist_size=wordlist_size,
             extensions=extensions,
             scan_duration=scan_duration,
-        )
+        ).to_dict()
 
     except FileNotFoundError:
         return FfufScanResult.create_error(
@@ -205,7 +207,7 @@ async def ffuf_directory_scan(
             target=target,
             wordlist_type=wordlist_type,
             extensions=extensions,
-        )
+        ).to_dict()
     except Exception as e:
         logging.error(f"Error during ffuf scan: {e}")
         return FfufScanResult.create_error(
@@ -213,7 +215,7 @@ async def ffuf_directory_scan(
             target=target,
             wordlist_type=wordlist_type,
             extensions=extensions,
-        )
+        ).to_dict()
     finally:
         terminate_process(process)
         delete_temp_file(temp_file)
@@ -228,7 +230,7 @@ def _validate_ffuf_arguments(
     Returns:
         None if valid, error message string if invalid
     """
-    VALID_WORDLIST_TYPES = {"common", "medium", "big", "small"}
+    VALID_WORDLIST_TYPES = {"common", "small"}
 
     # Validate target
     if not target or not isinstance(target, str):
@@ -246,13 +248,11 @@ def _validate_ffuf_arguments(
 
 ✅ VALID WORDLIST TYPES:
 - "common": ~4,700 entries (fastest, good for initial scans)
-- "medium": ~220,000 entries (balanced coverage) 
-- "big": ~1,270,000 entries (comprehensive, takes longer)
+- "small": ~1,000 entries (ultra-fast, basic coverage)
 
 📝 EXAMPLE CORRECT CALLS:
 - ffuf_directory_scan(target="http://localhost:8000", wordlist_type="common")
-- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="medium")
-- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="big")
+- ffuf_directory_scan(target="http://localhost:8000", wordlist_type="small")
 
 Please use one of the exact wordlist types above."""
 
@@ -265,13 +265,3 @@ Please use one of the exact wordlist types above."""
         return f"❌ VALIDATION ERROR: 'extensions' should be comma-separated without spaces. Got: '{extensions}'. Use 'php,html,js,txt' instead of 'php, html, js, txt'"
 
     return None  # All validations passed
-
-
-# Sync wrapper for backward compatibility
-def ffuf_directory_scan_sync(
-    target: str, wordlist_type: str = "common", extensions: str = "php,html,js,txt"
-) -> FfufScanResult:
-    """Synchronous wrapper for ffuf_directory_scan."""
-    import asyncio
-
-    return asyncio.run(ffuf_directory_scan(target, wordlist_type, extensions))
