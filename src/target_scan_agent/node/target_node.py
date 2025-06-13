@@ -29,15 +29,19 @@ class TargetNode:
         attack_results = state.get("attack_results", [])
         tools_results = [r.to_dict() for r in state.get("results", [])]
 
+        context = {
+            "available_tools": available_tools,
+            "scan_results": scan_results,
+            "attack_results": attack_results,
+            "tools_results": tools_results,
+        }
+
         prompt = self.system_prompt.format(
             target=target.url,
             description=target.description,
-            timeout=timeout,
+            timeout=timeout.seconds,
             tools_calls=json.dumps(tools_calls.calls),
-            tools=json.dumps(available_tools),
-            scan_results=json.dumps(scan_results),
-            attack_results=json.dumps(attack_results),
-            tools_results=json.dumps(tools_results),
+            context=json.dumps(context),
         )
         system_message = SystemMessage(prompt)
 
