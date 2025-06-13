@@ -1,20 +1,32 @@
 from typing import Literal
 from langchain_core.messages import AIMessage
 from target_scan_agent.state import TargetScanState
+from dataclasses import dataclass
+import logging
 
 
+@dataclass
 class ToolRouterEdge:
 
-    def route(self, state: TargetScanState) -> Literal["tools", "generate_report"]:
+    end_node: str
+    tools_node: str
+
+    def __call__(self, state: TargetScanState) -> str:
         """Route based on tool calls and limits"""
         last_message = state["messages"][-1]
         call_count = state["call_count"]
         max_calls = state["max_calls"]
 
         if call_count >= max_calls:
-            return "generate_report"
+            return self.end_node
 
         if isinstance(last_message, AIMessage) and last_message.tool_calls:
-            return "tools"
+            return self.tools_node
 
-        return "generate_report"
+        logging.info(
+            f"ToolRouterEdge: No tool calls found in the last message. "
+            f"Call count: {call_count}, Max calls: {max_calls}. "
+            f"Routing to end node: {self.end_node}. "
+            f"Last message: {last_message}"
+        )
+        return self.end_node

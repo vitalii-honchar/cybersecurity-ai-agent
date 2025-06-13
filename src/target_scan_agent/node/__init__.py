@@ -1,3 +1,5 @@
 from target_scan_agent.node.assistant import AssistantNode
 from target_scan_agent.node.process_tool_results import ProcessToolResultNode
 from target_scan_agent.node.generate_report import GenerateReportNode
+from target_scan_agent.node.scan_target import ScanTargetNode
+from target_scan_agent.node.attack_target import AttackTargetNode

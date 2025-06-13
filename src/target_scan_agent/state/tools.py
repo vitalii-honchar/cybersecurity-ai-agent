@@ -10,6 +10,10 @@ class Tool(BaseModel):
     type: ToolType = Field(description="The type of the tool")
     description: str = Field(description="A description of what the tool does")
 
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
+
 
 FfufTool = Tool(
     name="ffuf_directory_scan",

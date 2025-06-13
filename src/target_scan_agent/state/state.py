@@ -70,7 +70,6 @@ class ToolsCalls(BaseModel):
 
 
 class TargetScanState(MessagesState):
-    context: str
     target: Target
     tools: list[Tool]
     tools_calls: ToolsCalls
