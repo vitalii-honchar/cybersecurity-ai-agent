@@ -75,6 +75,8 @@ class TargetScanState(MessagesState):
     tools_calls: ToolsCalls
     timeout: timedelta
     results: Annotated[list[TargetScanToolResult], operator.add]
+    scan_results: Annotated[list[str], operator.add]
+    attack_results: Annotated[list[str], operator.add]
     summary: str | None
     call_count: int
     max_calls: int

@@ -1,12 +1,6 @@
-from target_scan_agent.state import (
-    TargetScanState,
-)
-from langchain_core.runnables import Runnable
-from langchain_core.language_models import LanguageModelInput
-from langchain_core.messages import SystemMessage, BaseMessage
-from target_scan_agent.state import get_attack_tools
+from target_scan_agent.state import ToolType
 from dataclasses import dataclass
-import json
+from target_scan_agent.node.target_node import TargetNode
 
 system_prompt = """
 You are a cybersecurity exploitation specialist agent focused exclusively on attacking and exploiting discovered vulnerabilities.
@@ -114,7 +108,13 @@ TOOL CALL LIMITS:
 AVAILABLE ATTACK TOOLS:
 {tools}
 
-RECONNAISSANCE RESULTS TO EXPLOIT:
+PREVIOUS SCAN RESULTS:
+{scan_results}
+
+PREVIOUS ATTACK RESULTS:
+{attack_results}
+
+PREVIOUS TOOL EXECUTION RESULTS:
 {tools_results}
 
 IMPORTANT: You are ONLY responsible for exploitation and validation. Do NOT perform any additional reconnaissance or scanning. Focus exclusively on attacking the discoveries made by the scan phase.
@@ -126,27 +126,6 @@ Your goal is to provide concrete proof-of-concept demonstrations of security vul
 
 
 @dataclass
-class AttackTargetNode:
-
-    llm_with_tools: Runnable[LanguageModelInput, BaseMessage]
-
-    def __call__(self, state: TargetScanState):
-        target = state["target"]
-        timeout = state["timeout"]
-        tools_calls = state["tools_calls"]
-        tools_results = [r.to_dict() for r in state.get("results", [])]
-        available_tools = [t.to_dict() for t in get_attack_tools(state["tools"])]
-
-        prompt = system_prompt.format(
-            target=target.url,
-            description=target.description,
-            timeout=timeout,
-            tools_calls=json.dumps(tools_calls.calls),
-            tools=json.dumps(available_tools),
-            tools_results=json.dumps(tools_results),
-        )
-        system_message = SystemMessage(prompt)
-        res = self.llm_with_tools.invoke([system_message])
-        return {
-            "messages": [res],
-        }
+class AttackTargetNode(TargetNode):
+    system_prompt: str = system_prompt
+    tools_type: ToolType = "attack"

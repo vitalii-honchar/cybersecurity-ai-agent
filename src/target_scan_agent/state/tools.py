@@ -29,8 +29,13 @@ CurlTool = Tool(
 
 
 def get_scan_tools(tools: list[Tool]) -> list[Tool]:
-    return [tool for tool in tools if tool.type == "scan"]
+    return get_tools(tools, "scan")
 
 
 def get_attack_tools(tools: list[Tool]) -> list[Tool]:
-    return [tool for tool in tools if tool.type == "attack"]
+    return get_tools(tools, "attack")
+
+
+def get_tools(tools: list[Tool], tool_type: ToolType) -> list[Tool]:
+    """Get tools by type."""
+    return [tool for tool in tools if tool.type == tool_type]

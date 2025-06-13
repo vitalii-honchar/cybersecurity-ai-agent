@@ -1,12 +1,6 @@
-from target_scan_agent.state import (
-    TargetScanState,
-)
-from langchain_core.runnables import Runnable
-from langchain_core.language_models import LanguageModelInput
-from langchain_core.messages import SystemMessage, BaseMessage
-from target_scan_agent.state import get_scan_tools
+from target_scan_agent.state import ToolType
+from target_scan_agent.node.target_node import TargetNode
 from dataclasses import dataclass
-import json
 
 system_prompt = """
 You are a cybersecurity reconnaissance specialist agent focused exclusively on information gathering and vulnerability scanning.
@@ -103,27 +97,6 @@ Your findings will be passed to a separate attack agent that will handle exploit
 
 
 @dataclass
-class ScanTargetNode:
-
-    llm_with_tools: Runnable[LanguageModelInput, BaseMessage]
-
-    def __call__(self, state: TargetScanState):
-        target = state["target"]
-        timeout = state["timeout"]
-        tools_calls = state["tools_calls"]
-        tools_results = [r.to_dict() for r in state.get("results", [])]
-        available_tools = [t.to_dict() for t in get_scan_tools(state["tools"])]
-
-        prompt = system_prompt.format(
-            target=target.url,
-            description=target.description,
-            timeout=timeout,
-            tools_calls=json.dumps(tools_calls.calls),
-            tools=json.dumps(available_tools),
-            tools_results=json.dumps(tools_results),
-        )
-        system_message = SystemMessage(prompt)
-        res = self.llm_with_tools.invoke([system_message])
-        return {
-            "messages": [res],
-        }
+class ScanTargetNode(TargetNode):
+    system_prompt: str = system_prompt
+    tools_type: ToolType = "scan"
