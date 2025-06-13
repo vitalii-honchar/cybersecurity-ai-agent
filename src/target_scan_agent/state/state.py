@@ -65,6 +65,7 @@ class ToolsCalls(BaseModel):
         description="A dictionary mapping tool names to their call limits."
     )
     calls: dict[ToolName, int] = Field(
+        default={},
         description="A dictionary mapping tool names to the number of times they have been called.",
     )
 

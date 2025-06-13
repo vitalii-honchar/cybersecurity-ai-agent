@@ -23,7 +23,7 @@ FfufTool = Tool(
 
 CurlTool = Tool(
     name="curl_tool",
-    type="scan",
+    type="attack",
     description="A tool for executing curl commands to interact with web services",
 )
 

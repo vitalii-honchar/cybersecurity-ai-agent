@@ -14,8 +14,8 @@ import logging
 
 @dataclass
 class TargetNode:
-    system_prompt: str
     llm_with_tools: Runnable[LanguageModelInput, BaseMessage]
+    system_prompt: str
     tools_type: ToolType
 
     def __call__(self, state: TargetScanState):
