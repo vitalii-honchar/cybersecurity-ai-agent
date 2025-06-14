@@ -17,24 +17,53 @@ async def flexible_http_tool(
     include_response_headers: bool = True,
     max_content_length: int = 10000,
     user_agent: str = "SecurityAgent/1.0",
-) -> HttpResult:
+) -> dict:
     """
-    Flexible HTTP tool that returns structured response data for LLM analysis.
+    Flexible HTTP tool for security testing that returns structured response data for LLM analysis.
+    
+    This tool provides comprehensive HTTP request capabilities for penetration testing,
+    including support for various attack vectors and security testing scenarios.
+
+    ✅ SECURITY TESTING EXAMPLES:
+    
+    Basic vulnerability scanning:
+    url="http://target.com/admin", method="GET"
+    
+    SQL injection testing:
+    url="http://target.com/search", method="POST", body={"query": "1' OR '1'='1"}
+    
+    XSS payload testing:
+    url="http://target.com/comment", method="POST", body={"comment": "<script>alert('XSS')</script>"}
+    
+    Directory traversal:
+    url="http://target.com/file", params={"path": "../../../etc/passwd"}
+    
+    Authentication bypass:
+    headers={"Authorization": "Bearer invalid_token"}
+    
+    Header injection testing:
+    headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "localhost"}
+    
+    Cookie manipulation:
+    headers={"Cookie": "session=admin; role=superuser"}
+    
+    CSRF testing:
+    headers={"Referer": "http://evil.com"}
 
     Args:
         url: Target URL to request (must start with http:// or https://)
         method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
-        headers: Custom HTTP headers to send
-        body: Request body (string or dict for JSON)
-        params: URL query parameters
+        headers: Custom HTTP headers to send (useful for authentication, injection testing)
+        body: Request body (string or dict for JSON) - use for payload injection
+        params: URL query parameters - use for parameter injection
         follow_redirects: Whether to follow HTTP redirects
         timeout: Request timeout in seconds
         include_response_headers: Whether to include response headers in output
         max_content_length: Maximum response body length to return
-        user_agent: User-Agent string
+        user_agent: User-Agent string (can be customized for evasion)
 
     Returns:
-        HttpResult with structured response data for LLM analysis
+        dict: Structured response data optimized for LLM analysis and security assessment
     """
     # Validate arguments first
     validation_error = _validate_http_arguments(url, method, timeout)
@@ -43,7 +72,7 @@ async def flexible_http_tool(
             url=url,
             method=method,
             error_message=f"Validation Error: {validation_error}"
-        )
+        ).to_dict()
 
     # Prepare default headers - LLM can customize user_agent
     default_headers = {
@@ -103,7 +132,7 @@ async def flexible_http_tool(
                 content=content,
                 execution_time=execution_time,
                 request_headers=final_headers
-            )
+            ).to_dict()
 
         except httpx.TimeoutException:
             execution_time = time.perf_counter() - start_time
@@ -113,7 +142,7 @@ async def flexible_http_tool(
                 error_message=f"Request timed out after {timeout} seconds",
                 execution_time=execution_time,
                 request_headers=final_headers
-            )
+            ).to_dict()
         except httpx.ConnectError as e:
             execution_time = time.perf_counter() - start_time
             return HttpResult.create_error(
@@ -122,7 +151,7 @@ async def flexible_http_tool(
                 error_message=f"Connection failed: {str(e)}",
                 execution_time=execution_time,
                 request_headers=final_headers
-            )
+            ).to_dict()
         except httpx.HTTPStatusError as e:
             execution_time = time.perf_counter() - start_time
             return HttpResult.create_error(
@@ -131,7 +160,7 @@ async def flexible_http_tool(
                 error_message=f"HTTP {e.response.status_code} error: {str(e)}",
                 execution_time=execution_time,
                 request_headers=final_headers
-            )
+            ).to_dict()
         except Exception as e:
             execution_time = time.perf_counter() - start_time
             return HttpResult.create_error(
@@ -140,7 +169,7 @@ async def flexible_http_tool(
                 error_message=f"Unexpected error: {str(e)}",
                 execution_time=execution_time,
                 request_headers=final_headers
-            )
+            ).to_dict()
 
 
 def _validate_http_arguments(url: str, method: str, timeout: int) -> str | None:

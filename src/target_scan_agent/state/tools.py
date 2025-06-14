@@ -27,6 +27,12 @@ CurlTool = Tool(
     description="A tool for executing curl commands to interact with web services",
 )
 
+FlexibleHttpTool = Tool(
+    name="flexible_http_tool",
+    type="attack",
+    description="A flexible HTTP tool for security testing and penetration testing with structured response data optimized for LLM analysis",
+)
+
 
 def get_scan_tools(tools: list[Tool]) -> list[Tool]:
     return get_tools(tools, "scan")

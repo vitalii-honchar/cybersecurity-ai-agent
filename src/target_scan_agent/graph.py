@@ -31,7 +31,7 @@ def create_graph() -> CompiledStateGraph:
     llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
 
     # tools
-    attack_tools = [ffuf_directory_scan, curl_tool]
+    attack_tools = [ffuf_directory_scan, curl_tool, flexible_http_tool]
     scan_tools = [ffuf_directory_scan]
 
     llm_with_attack_tools = llm.bind_tools(attack_tools, parallel_tool_calls=True)
