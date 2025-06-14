@@ -15,7 +15,7 @@ async def curl_tool(curl_args: str, timeout: int = 60) -> dict:
     Execute curl command with flexible arguments and return structured results.
 
     This tool provides maximum flexibility by allowing any curl arguments to be passed as a string.
-    The -v (verbose) flag is automatically added to capture detailed output.
+    The -i (include headers) flag is automatically added to capture detailed output.
 
     Args:
         curl_args: Space-separated curl arguments as a single string
@@ -37,8 +37,8 @@ async def curl_tool(curl_args: str, timeout: int = 60) -> dict:
 
         args_list = shlex.split(curl_args)
 
-        # Build curl command with verbose flag
-        cmd = ["curl", "-v"] + args_list
+        # Build curl command with include headers flag
+        cmd = ["curl", "-i"] + args_list
         command_str = " ".join(cmd)
 
         logging.info(f"🚀 Executing curl command: {command_str}")

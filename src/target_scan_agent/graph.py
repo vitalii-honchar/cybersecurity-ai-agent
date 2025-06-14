@@ -1,10 +1,11 @@
 from langgraph.graph import START, StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from langgraph.checkpoint.memory import MemorySaver
 from target_scan_agent.state import TargetScanState
 from target_scan_agent.node import (
-    AssistantNode,
     ProcessToolResultNode,
     GenerateReportNode,
     ScanTargetNode,
@@ -18,8 +19,12 @@ from target_scan_agent.tools import (
     ffuf_directory_scan,
     nmap_port_scan_tool,
 )
+from langchain_core.runnables.config import RunnableConfig
 from target_scan_agent.edge import ToolRouterEdge
 from langchain_core.messages import AIMessage
+from typing import Any
+from pprint import pprint
+import json
 
 
 def create_graph() -> CompiledStateGraph:
@@ -72,9 +77,100 @@ def create_graph() -> CompiledStateGraph:
 
     builder.add_edge("attack_tools", "process_attack_results")
     builder.add_edge("process_attack_results", "attack_target_node")
-    
+
     builder.add_edge("generate_report", END)
 
     # Add memory checkpointer for state persistence
     memory = MemorySaver()
     return builder.compile(checkpointer=memory)
+
+
+def extract_event_details(event):
+    """Extract detailed information from graph event"""
+    details = {}
+
+    for node_or_edge_name, event_data in event.items():
+        details["node_or_edge_name"] = node_or_edge_name
+        details["event_data"] = event_data
+
+        # Extract message content if available
+        if "messages" in event_data:
+            messages = event_data["messages"]
+            if messages:
+                last_message = messages[-1] if isinstance(messages, list) else messages
+                details["message_content"] = getattr(
+                    last_message, "content", "No content available"
+                )
+
+                # Extract tool calling information
+                if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+                    details["tool_calls"] = []
+                    for tool_call in last_message.tool_calls:
+                        tool_info = {
+                            "tool_name": tool_call.get("name", "Unknown"),
+                            "tool_arguments": tool_call.get("args", {}),
+                            "tool_call_id": tool_call.get("id", "No ID"),
+                        }
+                        details["tool_calls"].append(tool_info)
+                else:
+                    details["tool_calls"] = None
+            else:
+                details["message_content"] = "No messages available"
+                details["tool_calls"] = None
+        else:
+            details["message_content"] = "No message field in event data"
+            details["tool_calls"] = None
+
+        # Extract any state information
+        state_info = {}
+        for key, value in event_data.items():
+            if key != "messages":
+                state_info[key] = (
+                    str(type(value).__name__) + f" ({len(str(value))} chars)"
+                )
+        details["state_info"] = state_info
+
+    return details
+
+
+def print_event_details(event_details):
+    """Print event details in a formatted way"""
+    print(f"🔍 NODE/EDGE: {event_details['node_or_edge_name']}")
+    print(f"📝 MESSAGE CONTENT:")
+
+    # Handle long content by truncating
+    content = event_details["message_content"]
+    if len(content) > 500:
+        content = content[:500] + "... [TRUNCATED]"
+    print(f"   {content}")
+
+    print(f"🔧 TOOL CALLING:")
+    if event_details["tool_calls"]:
+        for i, tool_call in enumerate(event_details["tool_calls"], 1):
+            print(f"   Tool {i}:")
+            print(f"     Name: {tool_call['tool_name']}")
+            print(
+                f"     Arguments: {json.dumps(tool_call['tool_arguments'], indent=6)}"
+            )
+            print(f"     Call ID: {tool_call['tool_call_id']}")
+    else:
+        print("   No tool calls")
+
+    print(f"📊 CURRENT STATE INFO:")
+    for key, value_info in event_details["state_info"].items():
+        print(f"   {key}: {value_info}")
+
+
+async def run_graph(
+    graph: CompiledStateGraph, state: dict[str, Any] | None, config: RunnableConfig
+) -> dict[str, Any] | Any | None:
+    res = None
+    """Run the graph with the initial state and print event details."""
+    async for event in graph.astream(state, config=config):
+        # event_details = extract_event_details(event)
+        # print_event_details(event_details)
+        pprint(event)
+        print("-" * 80)
+        res = event
+
+    return res

@@ -63,7 +63,6 @@ class GenerateReportNode:
         attack_results = state.get("attack_results", [])
         tools_results = [r.to_dict() for r in results] if results else []
 
-        # Comprehensive context with all intelligence sources
         context = {
             "available_tools": available_tools,
             "scan_results": scan_results,
@@ -77,114 +76,27 @@ class GenerateReportNode:
             },
         }
 
-        print("Context for report generation:", json.dumps(context, indent=2))
         scan_context = json.dumps(context, indent=2)
+        formatted_system_prompt = system_prompt.format(
+            target=target.url,
+            description=target.description,
+            context=scan_context,
+        )
 
-        try:
-            # Use formatted system prompt
-            formatted_system_prompt = system_prompt.format(
-                target=target.url,
-                description=target.description,
-                context=scan_context,
-            )
-
-            report_messages = [
-                SystemMessage(content=formatted_system_prompt),
-                HumanMessage(
-                    content=human_prompt.format(
-                        url=target.url, 
-                        scan_context=scan_context
-                    )
-                ),
-            ]
-            
-            # Try structured output first, fall back to regular response
-            try:
-                response = self.llm.with_structured_output(TargetScanOutput).invoke(
-                    report_messages
-                )
-                
-                # Check if we got a valid structured response
-                if isinstance(response, TargetScanOutput) and response.summary:
-                    return {"summary": response.summary, "scan_output": response}
-                else:
-                    # If structured output failed, get regular response
-                    regular_response = self.llm.invoke(report_messages)
-                    report_content = regular_response.content if hasattr(regular_response, 'content') else str(regular_response)
-                    
-                    # Create TargetScanOutput manually
-                    scan_output = TargetScanOutput(summary=report_content)
-                    return {"summary": report_content, "scan_output": scan_output}
-                    
-            except Exception as structured_error:
-                print(f"Structured output failed: {structured_error}")
-                # Fall back to regular LLM call
-                regular_response = self.llm.invoke(report_messages)
-                report_content = regular_response.content if hasattr(regular_response, 'content') else str(regular_response)
-                
-                # Create TargetScanOutput manually
-                scan_output = TargetScanOutput(summary=report_content)
-                return {"summary": report_content, "scan_output": scan_output}
-
-        except Exception as e:
-            print(f"Report generation error: {str(e)}")
-            # Generate basic report from available data
-            basic_report = self._generate_basic_report(context, target.url)
-            scan_output = TargetScanOutput(summary=basic_report)
-            return {"summary": basic_report, "scan_output": scan_output}
-
-    def _generate_basic_report(self, context: Dict[str, Any], target_url: str) -> str:
-        """Generate a basic report when LLM fails."""
-        
-        # Extract key information from context
-        tools_results = context.get("tools_results", [])
-        scan_results = context.get("scan_results", [])
-        attack_results = context.get("attack_results", [])
-        
-        report_parts = [
-            f"# Security Assessment Report for {target_url}",
-            "",
-            "## Executive Summary",
-            f"- Target: {target_url}",
-            f"- Tools executed: {len(tools_results)}",
-            f"- Scan phases completed: {len(scan_results)}",
-            f"- Attack phases completed: {len(attack_results)}",
-            "",
-            "## Discovered Endpoints"
+        report_messages = [
+            SystemMessage(content=formatted_system_prompt),
+            HumanMessage(
+                content=human_prompt.format(url=target.url, scan_context=scan_context)
+            ),
         ]
-        
-        # Extract discovered endpoints from tools results
-        for tool_result in tools_results:
-            if tool_result.get("tool_name") == "ffuf_directory_scan":
-                result_data = json.loads(tool_result.get("result", "{}"))
-                findings = result_data.get("findings", [])
-                for finding in findings:
-                    report_parts.append(f"- {finding.get('url')} (Status: {finding.get('status')})")
-        
-        report_parts.extend([
-            "",
-            "## Attack Attempts",
-        ])
-        
-        # Extract attack information
-        for tool_result in tools_results:
-            if tool_result.get("tool_name") == "curl_tool":
-                args = tool_result.get("tool_arguments", {})
-                curl_args = args.get("curl_args", "")
-                report_parts.append(f"- Attack: {curl_args}")
-        
-        report_parts.extend([
-            "",
-            "## Recommendations",
-            "- Review discovered endpoints for proper authentication",
-            "- Implement input validation on all endpoints",
-            "- Review server configuration and security headers",
-            "",
-            "## Technical Details",
-            "Raw scan and attack data available in execution logs."
-        ])
-        
-        return "\n".join(report_parts)
+
+        response = self.llm.with_structured_output(TargetScanOutput).invoke(
+            report_messages
+        )
+
+        return {
+            "report": response,
+        }
 
     def __call__(self, state: TargetScanState) -> Dict[str, Any]:
         """Make the node callable for LangGraph."""
