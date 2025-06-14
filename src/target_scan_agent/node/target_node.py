@@ -40,7 +40,7 @@ class TargetNode:
             target=target.url,
             description=target.description,
             timeout=timeout.seconds,
-            tools_calls=json.dumps(tools_calls.calls),
+            tools_calls=json.dumps(tools_calls.to_dict()),
             context=json.dumps(context),
         )
         system_message = SystemMessage(prompt)

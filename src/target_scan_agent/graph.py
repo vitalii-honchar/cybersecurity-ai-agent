@@ -28,7 +28,7 @@ import json
 
 
 def create_graph() -> CompiledStateGraph:
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
 
     # tools
     attack_tools = [ffuf_directory_scan, curl_tool]
@@ -45,10 +45,16 @@ def create_graph() -> CompiledStateGraph:
 
     # edges init
     scan_tools_router = ToolRouterEdge(
-        end_node="attack_target_node", tools_node="scan_tools"
+        origin_node="scan_target_node",
+        tools_type="scan",
+        end_node="attack_target_node",
+        tools_node="scan_tools",
     )
     attack_tools_router = ToolRouterEdge(
-        end_node="generate_report", tools_node="attack_tools"
+        origin_node="attack_target_node",
+        tools_type="attack",
+        end_node="generate_report",
+        tools_node="attack_tools",
     )
 
     # graph init
@@ -169,7 +175,7 @@ async def run_graph(
     async for event in graph.astream(state, config=config):
         # event_details = extract_event_details(event)
         # print_event_details(event_details)
-        pprint(event)
+        pprint(event, indent=2)
         print("-" * 80)
         res = event
 

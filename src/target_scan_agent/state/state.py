@@ -106,13 +106,17 @@ class ServiceInfo(BaseModel):
     name: str = Field(description="Service name")
     version: str | None = Field(default=None, description="Service version")
     port: int | None = Field(default=None, description="Port number")
-    extra_info: str | None = Field(default=None, description="Additional service details")
+    extra_info: str | None = Field(
+        default=None, description="Additional service details"
+    )
 
 
 class DiscoveredEndpoint(BaseModel):
     url: str = Field(description="Full URL or endpoint path")
     status_code: int | None = Field(default=None, description="HTTP status code")
-    content_length: int | None = Field(default=None, description="Response content length")
+    content_length: int | None = Field(
+        default=None, description="Response content length"
+    )
     content_type: str | None = Field(default=None, description="Response content type")
 
 
@@ -120,7 +124,9 @@ class HiddenResource(BaseModel):
     path: str = Field(description="Resource path or URL")
     status_code: int = Field(description="HTTP status code")
     access_level: str = Field(description="Access level (forbidden, hidden, etc.)")
-    potential_value: str | None = Field(default=None, description="Potential security value")
+    potential_value: str | None = Field(
+        default=None, description="Potential security value"
+    )
 
 
 class EntryPoint(BaseModel):
@@ -233,6 +239,16 @@ class ToolsCalls(BaseModel):
         default={},
         description="A dictionary mapping tool names to the number of times they have been called.",
     )
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return self.model_dump(mode="json")
+
+    def _is_limit_reached(self, tool_name: ToolName) -> bool:
+        return self.calls.get(tool_name, 0) >= self.limits.get(tool_name, 0)
+
+    def is_limit_reached(self, tools: list[ToolName]) -> bool:
+        return all([self._is_limit_reached(tool_name) for tool_name in tools])
 
 
 class TargetScanState(MessagesState):
