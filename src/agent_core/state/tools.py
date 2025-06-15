@@ -42,6 +42,10 @@ class ToolsUsage(BaseModel):
         default=timedelta(minutes=5),
         description="The default timeout duration for tools if not specified.",
     )
+    default_limit: int = Field(
+        default=3,
+        description="The default limit for tool calls if not specified in limits.",
+    )
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")
@@ -50,7 +54,10 @@ class ToolsUsage(BaseModel):
         return all([self._is_limit_reached(tool_name) for tool_name in tools])
 
     def _is_limit_reached(self, tool_name: ToolName) -> bool:
-        return self.usage.get(tool_name, 0) >= self.limits.get(tool_name, 0)
+        return self.usage.get(tool_name, 0) >= self._get_limit(tool_name)
+
+    def _get_limit(self, tool_name: ToolName) -> int:
+        return self.limits.get(tool_name, self.default_limit)
 
 
 class ToolResult(BaseModel):

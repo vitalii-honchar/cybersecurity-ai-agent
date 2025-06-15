@@ -3,6 +3,7 @@ from langgraph.graph import MessagesState
 from agent_core.state.tools import ToolsUsage, ToolResult, Tools
 from pydantic import BaseModel, Field
 from typing import Annotated
+from agent_core.state.target import Target
 
 
 class ReActUsage(BaseModel):
@@ -14,6 +15,9 @@ class ReActUsage(BaseModel):
         description="The current number of recursion executions for ReAct node.",
     )
 
+    def is_limit_reached(self) -> bool:
+        return self.usage >= self.limit
+
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")
 
@@ -23,3 +27,4 @@ class ReActAgentState(MessagesState):
     tools_usage: ToolsUsage
     tools: Tools
     results: Annotated[list[ToolResult], operator.add]
+    target: Target
