@@ -22,6 +22,9 @@ class Tools(BaseModel):
     def get_tools(self, tool_type: ToolType) -> list[Tool]:
         return [tool for tool in self.tools if tool.type == tool_type]
 
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json")
+
 
 class ToolsUsage(BaseModel):
     limits: dict[ToolName, int] = Field(
@@ -52,9 +55,13 @@ class ToolsUsage(BaseModel):
 
 class ToolResult(BaseModel):
     result: str = Field(description="The raw result of the tool execution.")
-    tool_name: str | None = Field(
+    tool_name: ToolName | None = Field(
         default=None,
         description="The name of the tool that was called",
+    )
+    tool_type: ToolType | None = Field(
+        default=None,
+        description="The type of the tool that was called",
     )
     tool_arguments: dict | None = Field(
         default=None,
