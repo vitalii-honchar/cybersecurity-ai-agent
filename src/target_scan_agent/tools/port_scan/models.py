@@ -71,12 +71,12 @@ class NmapScanResult(BaseModel):
     def create_empty(cls) -> "NmapScanResult":
         """Create empty result for when no hosts are found."""
         return cls(
-            hosts=[], 
-            scan_type="unknown", 
-            total_hosts=0, 
-            hosts_up=0, 
-            hosts_down=0, 
-            scan_completed=True
+            hosts=[],
+            scan_type="unknown",
+            total_hosts=0,
+            hosts_up=0,
+            hosts_down=0,
+            scan_completed=True,
         )
 
     @classmethod
@@ -89,7 +89,7 @@ class NmapScanResult(BaseModel):
             hosts_up=0,
             hosts_down=0,
             scan_completed=False,
-            error=error_message
+            error=error_message,
         )
 
     def has_hosts(self) -> bool:
@@ -111,7 +111,9 @@ class NmapScanResult(BaseModel):
         """Get ports filtered by service name."""
         ports = []
         for host in self.hosts:
-            ports.extend([port for port in host.ports if service.lower() in port.service.lower()])
+            ports.extend(
+                [port for port in host.ports if service.lower() in port.service.lower()]
+            )
         return ports
 
     def to_json(self) -> str:
@@ -120,4 +122,4 @@ class NmapScanResult(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
-        return self.model_dump(mode='json')
+        return self.model_dump(mode="json")

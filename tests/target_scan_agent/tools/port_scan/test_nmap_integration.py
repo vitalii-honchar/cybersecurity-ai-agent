@@ -17,19 +17,21 @@ class TestNmapIntegration:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
-    def validate_nmap_scan_result(self, result: NmapScanResult, expected_port: int = None):
+    def validate_nmap_scan_result(
+        self, result: NmapScanResult, expected_port: int = None
+    ):
         """Validate nmap scan result structure."""
         assert isinstance(result, NmapScanResult)
-        
+
         if result.error:
             print(f"Scan error: {result.error}")
             return True
-            
+
         print(f"Scan completed: {result.scan_completed}")
         print(f"Total hosts: {result.total_hosts}")
         print(f"Hosts up: {result.hosts_up}")
         print(f"Hosts down: {result.hosts_down}")
-        
+
         if not result.has_hosts():
             print("No hosts detected")
             return True
@@ -41,7 +43,7 @@ class TestNmapIntegration:
                 print(f"  Hostname: {host.hostname}")
             print(f"  State: {host.state}")
             print(f"  Open ports: {len(host.get_open_ports())}")
-            
+
             # Display open ports
             open_ports = host.get_open_ports()
             for port in open_ports:
@@ -50,15 +52,17 @@ class TestNmapIntegration:
                     print(f"      Version: {port.version}")
                 if port.product:
                     print(f"      Product: {port.product}")
-            
+
             # If we expect a specific port, verify it's found
             if expected_port:
                 port_numbers = [port.port for port in open_ports]
                 if expected_port in port_numbers:
                     print(f"  ✅ Found expected port {expected_port}")
                 else:
-                    print(f"  ⚠️  Expected port {expected_port} not found in open ports: {port_numbers}")
-        
+                    print(
+                        f"  ⚠️  Expected port {expected_port} not found in open ports: {port_numbers}"
+                    )
+
         return True
 
     @pytest.mark.integration
@@ -69,6 +73,7 @@ class TestNmapIntegration:
 
         # Extract host and port from server URL
         import urllib.parse
+
         parsed = urllib.parse.urlparse(fastapi_server)
         target_host = parsed.hostname or "127.0.0.1"
         target_port = parsed.port or 8000
@@ -101,6 +106,7 @@ class TestNmapIntegration:
 
         # Extract host and port from server URL
         import urllib.parse
+
         parsed = urllib.parse.urlparse(fastapi_server)
         target_host = parsed.hostname or "127.0.0.1"
         target_port = parsed.port or 8000
@@ -134,6 +140,7 @@ class TestNmapIntegration:
 
         # Extract host and port from server URL
         import urllib.parse
+
         parsed = urllib.parse.urlparse(fastapi_server)
         target_host = parsed.hostname or "127.0.0.1"
         target_port = parsed.port or 8000
@@ -212,7 +219,7 @@ class TestNmapIntegration:
         # Should complete without error even if no hosts found
         assert isinstance(result, NmapScanResult)
         assert result.scan_completed is True or result.error is not None
-        
+
         if result.error:
             print(f"Expected error for non-existent host: {result.error}")
         else:

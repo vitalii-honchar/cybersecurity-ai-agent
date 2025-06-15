@@ -12,13 +12,15 @@ def fastapi_server():
     server_thread = None
     server_port = 8080
     server_url = f"http://localhost:{server_port}"
-    
+
     # Start server in background thread
-    config = uvicorn.Config(app, host="127.0.0.1", port=server_port, log_level="warning")
+    config = uvicorn.Config(
+        app, host="127.0.0.1", port=server_port, log_level="warning"
+    )
     server = uvicorn.Server(config)
     server_thread = threading.Thread(target=server.run, daemon=True)
     server_thread.start()
-    
+
     # Wait for server to be ready
     max_retries = 30
     for _ in range(max_retries):
@@ -31,7 +33,7 @@ def fastapi_server():
         time.sleep(0.5)
     else:
         pytest.fail("FastAPI server failed to start")
-    
+
     yield server_url
-    
+
     # Cleanup is automatic since thread is daemon

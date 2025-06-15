@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from datetime import timedelta
 
 ToolType = str
 ToolName = str
@@ -27,8 +28,16 @@ class ToolsUsage(BaseModel):
         description="A dictionary mapping tool names to their call limits."
     )
     usage: dict[ToolName, int] = Field(
-        default={},
+        default_factory=dict,
         description="A dictionary mapping tool names to the number of times they have been called.",
+    )
+    tools_timeouts: dict[ToolName, timedelta] | None = Field(
+        default=None,
+        description="A dictionary mapping tool names to their timeout durations.",
+    )
+    default_timeout: timedelta = Field(
+        default=timedelta(minutes=5),
+        description="The default timeout duration for tools if not specified.",
     )
 
     def to_dict(self) -> dict:
@@ -39,3 +48,21 @@ class ToolsUsage(BaseModel):
 
     def _is_limit_reached(self, tool_name: ToolName) -> bool:
         return self.usage.get(tool_name, 0) >= self.limits.get(tool_name, 0)
+
+
+class ToolResult(BaseModel):
+    result: str = Field(description="The raw result of the tool execution.")
+    tool_name: str | None = Field(
+        default=None,
+        description="The name of the tool that was called",
+    )
+    tool_arguments: dict | None = Field(
+        default=None,
+        description="The arguments passed to the tool when it was called",
+    )
+    tool_call_id: str = Field(
+        description="Unique identifier for the tool call to avoid duplicates"
+    )
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json")

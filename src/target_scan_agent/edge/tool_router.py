@@ -8,7 +8,6 @@ import logging
 
 @dataclass
 class ToolRouterEdge:
-
     origin_node: str
     end_node: str
     tools_node: str

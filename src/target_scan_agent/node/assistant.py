@@ -229,13 +229,14 @@ class AssistantNode:
             prev_scans = json.dumps(
                 [result.to_dict() for result in state["results"]], indent=2
             )
-            
+
             # Generate list of previous tool calls to avoid duplicates
-            prev_tool_calls = self._generate_previous_tool_calls_summary(state["results"])
-            
+            prev_tool_calls = self._generate_previous_tool_calls_summary(
+                state["results"]
+            )
+
             prompt += PREVIOUS_SCAN_PROMPT.format(
-                prev_scans=prev_scans,
-                prev_tool_calls=prev_tool_calls
+                prev_scans=prev_scans, prev_tool_calls=prev_tool_calls
             )
 
         # Only pass system message with context - no need for full conversation history
@@ -249,24 +250,26 @@ class AssistantNode:
             "max_calls": state.get("max_calls", 20),
             "tools_calls": tools_calls,
         }
-    
+
     def _generate_previous_tool_calls_summary(self, results: list) -> str:
         """Generate a summary of previous tool calls to avoid duplicates."""
         tool_calls_summary = []
-        
+
         for i, result in enumerate(results, 1):
-            if hasattr(result, 'tool_name') and result.tool_name:
+            if hasattr(result, "tool_name") and result.tool_name:
                 tool_name = result.tool_name
                 tool_args = result.tool_arguments or {}
-                
+
                 # Format arguments nicely for readability
-                args_str = ", ".join([f"{k}={v}" for k, v in tool_args.items() if v is not None])
-                
+                args_str = ", ".join(
+                    [f"{k}={v}" for k, v in tool_args.items() if v is not None]
+                )
+
                 if args_str:
                     tool_calls_summary.append(f"{i}. {tool_name}({args_str})")
                 else:
                     tool_calls_summary.append(f"{i}. {tool_name}()")
-        
+
         if tool_calls_summary:
             return "\n".join(tool_calls_summary)
         else:
