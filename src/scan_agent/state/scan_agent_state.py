@@ -1,8 +1,6 @@
 import operator
-from agent_core.state import ReActAgentState, ToolType
+from agent_core.state import ReActAgentState
 
-
-ToolTypeScan = ToolType("scan")
 
 
 class ScanAgentState(ReActAgentState):

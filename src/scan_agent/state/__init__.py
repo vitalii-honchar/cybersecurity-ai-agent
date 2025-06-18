@@ -1,6 +1,5 @@
-from scan_agent.state.scan_agent_state import ScanAgentState, ToolTypeScan
+from scan_agent.state.scan_agent_state import ScanAgentState
 
 __all__ = [
     "ScanAgentState",
-    "ToolTypeScan",
 ]

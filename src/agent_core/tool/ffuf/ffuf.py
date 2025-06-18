@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 from pydantic import ValidationError
+from agent_core.state import Tool
 
 from agent_core.tool.ffuf.models import FfufScanResult, FfufFinding
 from agent_core.tool.process.process import (
@@ -265,3 +266,10 @@ Please use one of the exact wordlist types above."""
         return f"❌ VALIDATION ERROR: 'extensions' should be comma-separated without spaces. Got: '{extensions}'. Use 'php,html,js,txt' instead of 'php, html, js, txt'"
 
     return None  # All validations passed
+
+
+FFUF_TOOL = Tool(
+    name=ffuf_directory_scan.__name__,
+    capabilities=["scan"],
+    description="Discover hidden web directories and files using fuzzing wordlists. Returns found paths with HTTP status codes and response sizes.",
+)

@@ -2,8 +2,7 @@ from agent_core.state.tools import (
     ToolsUsage,
     Tool,
     Tools,
-    ToolType,
-    ToolName,
+    ToolCapability,
     ToolResult,
 )
 from agent_core.state.severity import SeverityLevel
@@ -15,8 +14,7 @@ __all__ = [
     "ToolsUsage",
     "Tool",
     "Tools",
-    "ToolType",
-    "ToolName",
+    "ToolCapability",
     "SeverityLevel",
     "Target",
     "TargetType",

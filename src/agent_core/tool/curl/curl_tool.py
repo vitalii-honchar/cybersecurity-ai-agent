@@ -2,6 +2,7 @@ import subprocess
 import time
 import logging
 import shlex
+from agent_core.state import Tool
 from agent_core.tool.process.process import (
     wait_for_process_completion,
     terminate_process,
@@ -207,3 +208,10 @@ async def curl_tool(curl_args: str, timeout: int = 60) -> dict:
         ).to_dict()
     finally:
         terminate_process(process)
+
+
+CURL_TOOL = Tool(
+    name=curl_tool.__name__,
+    capabilities=["scan", "attack"],
+    description="Execute HTTP requests with custom headers, methods, and payloads. Returns response data including status codes, headers, and body content.",
+)

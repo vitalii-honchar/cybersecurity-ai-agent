@@ -3,7 +3,7 @@ from langgraph.graph import START, StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
-from scan_agent.state import ScanAgentState, ToolTypeScan
+from scan_agent.state import ScanAgentState
 from agent_core.edge import ToolRouterEdge
 from agent_core.node import ProcessToolResultsNode
 from scan_agent.node import ScanNode
