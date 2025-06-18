@@ -1,5 +1,5 @@
-from agent_core.tool.curl import curl_tool, CURL_TOOL
-from agent_core.tool.ffuf import ffuf_directory_scan, FFUF_TOOL
+from agent_core.tool.curl import CURL_TOOL, curl_tool
+from agent_core.tool.ffuf import FFUF_TOOL, ffuf_directory_scan
 
 __all__ = [
     "curl_tool",

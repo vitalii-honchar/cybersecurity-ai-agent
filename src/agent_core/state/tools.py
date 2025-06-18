@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from datetime import timedelta
-from typing import Literal, List, Dict, Any
+from typing import Any, Dict, List, Literal
+
+from pydantic import BaseModel, Field
 
 ToolCapability = Literal["scan", "attack"]
 

@@ -1,9 +1,11 @@
+from typing import override
+
+from langchain_core.language_models import LanguageModelInput
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
+from langchain_core.runnables import Runnable
+
 from agent_core.node import ReActNode
 from scan_agent.state import ScanAgentState
-from typing import override
-from langchain_core.runnables import Runnable
-from langchain_core.language_models import LanguageModelInput
-from langchain_core.messages import SystemMessage, BaseMessage, AIMessage
 
 SCAN_BEHAVIOR_PROMPT = """# Cybersecurity Reconnaissance Specialist
 
@@ -91,17 +93,19 @@ Your reconnaissance will feed an exploitation agent. Provide:
 
 
 class ScanNode(ReActNode[ScanAgentState]):
-
     def __init__(self, llm_with_tools: Runnable[LanguageModelInput, BaseMessage]):
         super().__init__(llm_with_tools=llm_with_tools)
 
     @override
     def get_system_prompt(self, state: ScanAgentState) -> str:
         target = state.get("target", {})
-        target_url = getattr(target, 'url', 'Unknown') if target else 'Unknown'
-        target_description = getattr(target, 'description', 'No description provided') if target else 'No description provided'
-        
+        target_url = getattr(target, "url", "Unknown") if target else "Unknown"
+        target_description = (
+            getattr(target, "description", "No description provided")
+            if target
+            else "No description provided"
+        )
+
         return SCAN_BEHAVIOR_PROMPT.format(
-            target_url=target_url,
-            target_description=target_description
+            target_url=target_url, target_description=target_description
         )

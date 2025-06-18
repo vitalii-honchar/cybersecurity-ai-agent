@@ -1,14 +1,14 @@
-from agent_core.state import (
-    ReActAgentState
-)
-from langchain_core.runnables import Runnable
-from langchain_core.language_models import LanguageModelInput
-from langchain_core.messages import SystemMessage, BaseMessage, AIMessage
-from target_scan_agent.state import get_tools
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
 import json
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+from langchain_core.language_models import LanguageModelInput
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
+from langchain_core.runnables import Runnable
+
+from agent_core.state import ReActAgentState
+from target_scan_agent.state import get_tools
 
 system_prompt = """
 You are an agent that should act as specified in escaped content <BEHAVIOR></BEHAVIOR>.
@@ -32,7 +32,6 @@ PREVIOUS TOOLS EXECUTION RESULTS:
 
 
 class ReActNode[StateT: ReActAgentState](ABC):
-
     def __init__(self, llm_with_tools: Runnable[LanguageModelInput, BaseMessage]):
         self.llm_with_tools = llm_with_tools
 

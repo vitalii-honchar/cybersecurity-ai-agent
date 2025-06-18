@@ -1,6 +1,7 @@
-from target_scan_agent.state import ToolType
-from target_scan_agent.node.target_node import TargetNode
 from dataclasses import dataclass
+
+from target_scan_agent.node.target_node import TargetNode
+from target_scan_agent.state import ToolType
 
 system_prompt = """# Cybersecurity Reconnaissance Agent Prompt
 

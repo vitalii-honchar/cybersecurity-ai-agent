@@ -4,18 +4,19 @@ This application contains intentional security vulnerabilities for testing AI se
 DO NOT use in production or expose to the internet.
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import sqlite3
-import hashlib
-import secrets
-import os
-import subprocess
 import base64
+import hashlib
+import os
+import secrets
+import sqlite3
+import subprocess
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pydantic import BaseModel
 
 # Initialize FastAPI app
 app = FastAPI(

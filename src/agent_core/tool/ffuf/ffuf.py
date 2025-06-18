@@ -1,19 +1,20 @@
-import time
 import logging
+import time
 from pathlib import Path
 from typing import Optional
-from pydantic import ValidationError
-from agent_core.state import Tool
 
-from agent_core.tool.ffuf.models import FfufScanResult, FfufFinding
+from pydantic import ValidationError
+
+from agent_core.state import Tool
+from agent_core.tool.ffuf.models import FfufFinding, FfufScanResult
 from agent_core.tool.process.process import (
+    count_lines_in_file,
     create_temp_file,
     delete_temp_file,
     execute_process,
+    read_json_file,
     terminate_process,
     wait_for_process_completion,
-    read_json_file,
-    count_lines_in_file,
 )
 
 

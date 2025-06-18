@@ -1,8 +1,10 @@
-import pytest
-import time
 import threading
-import uvicorn
+import time
+
+import pytest
 import requests
+import uvicorn
+
 from src.api_target.main import app
 
 

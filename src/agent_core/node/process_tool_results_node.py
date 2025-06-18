@@ -1,13 +1,13 @@
 from langchain_core.messages import (
-    ToolMessage,
-    AnyMessage,
     AIMessage,
+    AnyMessage,
+    ToolMessage,
 )
+
 from agent_core.state import ReActAgentState, ToolResult
 
 
 class ProcessToolResultsNode[StateT: ReActAgentState]:
-
     def __call__(self, state: StateT) -> dict:
         messages = state["messages"]
         tools_usage = state["tools_usage"]

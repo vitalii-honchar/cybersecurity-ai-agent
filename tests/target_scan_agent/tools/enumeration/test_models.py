@@ -1,4 +1,5 @@
 import json
+
 from src.target_scan_agent.tools.enumeration.models import FfufFinding, FfufScanResult
 
 

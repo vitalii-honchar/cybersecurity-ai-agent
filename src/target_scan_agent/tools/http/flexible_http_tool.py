@@ -1,8 +1,10 @@
 import asyncio
-import httpx
 import json
-from typing import Optional, Union, Any
 import time
+from typing import Any, Optional, Union
+
+import httpx
+
 from .models import HttpResult
 
 

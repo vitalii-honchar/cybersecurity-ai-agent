@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
 from langchain_core.messages import AIMessage
 
 from target_scan_agent.edge.tool_router import ToolRouterEdge

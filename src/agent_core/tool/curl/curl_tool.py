@@ -1,13 +1,15 @@
-import subprocess
-import time
 import logging
 import shlex
+import subprocess
+import time
+
 from agent_core.state import Tool
 from agent_core.tool.process.process import (
-    wait_for_process_completion,
-    terminate_process,
     execute_process,
+    terminate_process,
+    wait_for_process_completion,
 )
+
 from .models import CurlResult
 
 

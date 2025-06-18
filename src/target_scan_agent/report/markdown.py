@@ -1,8 +1,8 @@
 from target_scan_agent.state import (
+    AttackVector,
+    ExposedData,
     TargetScanOutput,
     Vulnerability,
-    ExposedData,
-    AttackVector,
 )
 
 

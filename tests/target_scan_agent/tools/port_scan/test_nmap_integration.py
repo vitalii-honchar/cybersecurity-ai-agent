@@ -1,7 +1,9 @@
-import pytest
 import subprocess
-from src.target_scan_agent.tools.port_scan.nmap_tool import nmap_port_scan_tool
+
+import pytest
+
 from src.target_scan_agent.tools.port_scan.models import NmapScanResult
+from src.target_scan_agent.tools.port_scan.nmap_tool import nmap_port_scan_tool
 
 
 class TestNmapIntegration:

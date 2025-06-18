@@ -1,5 +1,7 @@
-import pytest
 import subprocess
+
+import pytest
+
 from src.target_scan_agent.tools.enumeration.ffuf import ffuf_directory_scan
 from src.target_scan_agent.tools.enumeration.models import FfufScanResult
 

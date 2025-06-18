@@ -1,11 +1,10 @@
+import logging
 import subprocess
 import time
 import xml.etree.ElementTree as ET
-import logging
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from .models import NmapScanResult, NmapHost, NmapPort
 from ..common.process_utils import (
     create_temp_file,
     delete_temp_file,
@@ -13,6 +12,7 @@ from ..common.process_utils import (
     terminate_process,
     wait_for_process_completion,
 )
+from .models import NmapHost, NmapPort, NmapScanResult
 
 
 async def nmap_port_scan_tool(

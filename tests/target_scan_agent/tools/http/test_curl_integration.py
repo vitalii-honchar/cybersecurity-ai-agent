@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 from unittest.mock import patch
+
+import pytest
 
 from target_scan_agent.tools.http.curl_tool import curl_tool
 from target_scan_agent.tools.http.models import CurlResult
