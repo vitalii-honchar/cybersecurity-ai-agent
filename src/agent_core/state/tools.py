@@ -47,6 +47,11 @@ class ToolsUsage(BaseModel):
         description="The default limit for tool calls if not specified in limits.",
     )
 
+    def increment_usage(self, tool_name: ToolName):
+        if tool_name not in self.usage:
+            self.usage[tool_name] = 0
+        self.usage[tool_name] += 1
+
     def to_dict(self) -> dict:
         return self.model_dump(mode="json")
 

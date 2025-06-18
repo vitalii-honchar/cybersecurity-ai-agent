@@ -38,7 +38,7 @@ class ReActNode[StateT: ReActAgentState](ABC):
     def __init__(self, llm_with_tools: Runnable[LanguageModelInput, BaseMessage]):
         self.llm_with_tools = llm_with_tools
 
-    def __call__(self, state: StateT):
+    def __call__(self, state: StateT) -> dict:
         prompt = system_prompt.format(
             tools=json.dumps(state["tools"].to_dict()),
             tools_usage=json.dumps(state["tools_usage"].to_dict()),
