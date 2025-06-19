@@ -46,6 +46,10 @@ class ReActNode[StateT: ReActAgentState](ABC):
         system_message = SystemMessage(prompt)
 
         res = self.llm_with_tools.invoke([system_message])
+
+        logging.debug(
+            "[ReActNode] Executed LLM request: state = %s, response = %s", state, res
+        )
         return {"messages": [res]}
 
     @abstractmethod

@@ -5,6 +5,7 @@ from langchain_core.messages import (
 )
 
 from agent_core.state import ReActAgentState, ToolResult
+import logging
 
 
 class ProcessToolResultsNode[StateT: ReActAgentState]:
@@ -37,6 +38,10 @@ class ProcessToolResultsNode[StateT: ReActAgentState]:
                         )
                     )
 
+        logging.debug(
+            "ProcessToolResultsNode: Processed tool results: %s",
+            new_results,
+        )
         return {
             "results": list(reversed(new_results)),
             "tools_calls": tools_usage,
