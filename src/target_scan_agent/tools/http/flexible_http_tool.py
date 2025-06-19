@@ -1,8 +1,10 @@
 import asyncio
-import httpx
 import json
-from typing import Optional, Union, Any
 import time
+from typing import Any, Optional, Union
+
+import httpx
+
 from .models import HttpResult
 
 
@@ -20,33 +22,33 @@ async def flexible_http_tool(
 ) -> dict:
     """
     Flexible HTTP tool for security testing that returns structured response data for LLM analysis.
-    
+
     This tool provides comprehensive HTTP request capabilities for penetration testing,
     including support for various attack vectors and security testing scenarios.
 
     ✅ SECURITY TESTING EXAMPLES:
-    
+
     Basic vulnerability scanning:
     url="http://target.com/admin", method="GET"
-    
+
     SQL injection testing:
     url="http://target.com/search", method="POST", body={"query": "1' OR '1'='1"}
-    
+
     XSS payload testing:
     url="http://target.com/comment", method="POST", body={"comment": "<script>alert('XSS')</script>"}
-    
+
     Directory traversal:
     url="http://target.com/file", params={"path": "../../../etc/passwd"}
-    
+
     Authentication bypass:
     headers={"Authorization": "Bearer invalid_token"}
-    
+
     Header injection testing:
     headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "localhost"}
-    
+
     Cookie manipulation:
     headers={"Cookie": "session=admin; role=superuser"}
-    
+
     CSRF testing:
     headers={"Referer": "http://evil.com"}
 
@@ -71,7 +73,7 @@ async def flexible_http_tool(
         return HttpResult.create_error(
             url=url,
             method=method,
-            error_message=f"Validation Error: {validation_error}"
+            error_message=f"Validation Error: {validation_error}",
         ).to_dict()
 
     # Prepare default headers - LLM can customize user_agent
@@ -119,10 +121,15 @@ async def flexible_http_tool(
             # Prepare response content (truncated if too long)
             content = response.text or ""
             if len(content) > max_content_length:
-                content = content[:max_content_length] + f"\n... (truncated from {len(response.text)} chars)"
+                content = (
+                    content[:max_content_length]
+                    + f"\n... (truncated from {len(response.text)} chars)"
+                )
 
             # Convert headers to dict, only include if requested
-            response_headers = dict(response.headers) if include_response_headers else {}
+            response_headers = (
+                dict(response.headers) if include_response_headers else {}
+            )
 
             return HttpResult.create_success(
                 url=str(response.url),
@@ -131,7 +138,7 @@ async def flexible_http_tool(
                 headers=response_headers,
                 content=content,
                 execution_time=execution_time,
-                request_headers=final_headers
+                request_headers=final_headers,
             ).to_dict()
 
         except httpx.TimeoutException:
@@ -141,7 +148,7 @@ async def flexible_http_tool(
                 method=method,
                 error_message=f"Request timed out after {timeout} seconds",
                 execution_time=execution_time,
-                request_headers=final_headers
+                request_headers=final_headers,
             ).to_dict()
         except httpx.ConnectError as e:
             execution_time = time.perf_counter() - start_time
@@ -150,7 +157,7 @@ async def flexible_http_tool(
                 method=method,
                 error_message=f"Connection failed: {str(e)}",
                 execution_time=execution_time,
-                request_headers=final_headers
+                request_headers=final_headers,
             ).to_dict()
         except httpx.HTTPStatusError as e:
             execution_time = time.perf_counter() - start_time
@@ -159,7 +166,7 @@ async def flexible_http_tool(
                 method=method,
                 error_message=f"HTTP {e.response.status_code} error: {str(e)}",
                 execution_time=execution_time,
-                request_headers=final_headers
+                request_headers=final_headers,
             ).to_dict()
         except Exception as e:
             execution_time = time.perf_counter() - start_time
@@ -168,43 +175,43 @@ async def flexible_http_tool(
                 method=method,
                 error_message=f"Unexpected error: {str(e)}",
                 execution_time=execution_time,
-                request_headers=final_headers
+                request_headers=final_headers,
             ).to_dict()
 
 
 def _validate_http_arguments(url: str, method: str, timeout: int) -> str | None:
     """
     Validate HTTP tool arguments and return error message if invalid.
-    
+
     Returns:
         None if valid, error message string if invalid
     """
-    VALID_METHODS = {'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'}
-    
+    VALID_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
+
     # Validate URL
     if not url or not isinstance(url, str):
         return "'url' must be a non-empty string (e.g., 'http://localhost:8000')"
-    
-    if not url.startswith(('http://', 'https://')):
+
+    if not url.startswith(("http://", "https://")):
         return f"'url' must start with http:// or https://. Got: '{url}'"
-    
+
     # Validate method
     if not method or not isinstance(method, str):
         return "'method' must be a non-empty string"
-    
+
     method_upper = method.upper()
     if method_upper not in VALID_METHODS:
         return f"""Invalid HTTP method '{method}'. 
 
-✅ VALID METHODS: {', '.join(sorted(VALID_METHODS))}
+✅ VALID METHODS: {", ".join(sorted(VALID_METHODS))}
 
 📝 EXAMPLES:
 - flexible_http_tool(url="http://localhost:8000", method="GET")
 - flexible_http_tool(url="http://localhost:8000/login", method="POST")
 - flexible_http_tool(url="http://localhost:8000", method="HEAD")"""
-    
+
     # Validate timeout
     if not isinstance(timeout, int) or timeout <= 0:
         return f"'timeout' must be a positive integer. Got: {timeout}"
-    
+
     return None  # All validations passed

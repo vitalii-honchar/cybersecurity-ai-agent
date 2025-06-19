@@ -1,14 +1,16 @@
-from target_scan_agent.state import (
-    TargetScanState,
-    TargetScanOutput,
-    get_tools,
-    ToolType,
-)
+import json
+from dataclasses import dataclass
+from typing import Any, Dict
+
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from dataclasses import dataclass
-from typing import Dict, Any
-import json
+
+from target_scan_agent.state import (
+    TargetScanOutput,
+    TargetScanState,
+    ToolType,
+    get_tools,
+)
 
 system_prompt = """You are a senior penetration tester creating a comprehensive security report. Generate a detailed, professional security assessment based on the provided scan and attack results.
 

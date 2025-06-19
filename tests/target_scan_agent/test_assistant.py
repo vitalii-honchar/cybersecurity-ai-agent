@@ -1,8 +1,10 @@
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from target_scan_agent.node.assistant import AssistantNode
-from target_scan_agent.state.state import TargetScanState, Target, TargetScanToolResult
 from langchain_core.messages import AIMessage
+
+from target_scan_agent.node.assistant import AssistantNode
+from target_scan_agent.state.state import Target, TargetScanState, TargetScanToolResult
 
 
 class TestAssistantNode:

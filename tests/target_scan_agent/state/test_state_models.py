@@ -1,8 +1,9 @@
 import json
+
 from src.target_scan_agent.state.state import (
     Target,
-    TargetScanToolResult,
     TargetScanOutput,
+    TargetScanToolResult,
 )
 
 

@@ -1,15 +1,17 @@
+import logging
+from dataclasses import dataclass
+
+from langchain_core.messages import (
+    AIMessage,
+    AnyMessage,
+    ToolMessage,
+)
+from langchain_openai import ChatOpenAI
+
 from target_scan_agent.state import (
     TargetScanState,
     TargetScanToolResult,
 )
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import (
-    ToolMessage,
-    AnyMessage,
-    AIMessage,
-)
-import logging
-from dataclasses import dataclass
 
 
 @dataclass

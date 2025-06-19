@@ -1,14 +1,20 @@
-from typing import Literal
-from target_scan_agent.state import ToolType, get_tools, Tool, ToolsCalls
-from langchain_core.messages import AIMessage
-from target_scan_agent.state import TargetScanState
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from typing import Literal
+
+from langchain_core.messages import AIMessage
+
+from target_scan_agent.state import (
+    TargetScanState,
+    Tool,
+    ToolsCalls,
+    ToolType,
+    get_tools,
+)
 
 
 @dataclass
 class ToolRouterEdge:
-
     origin_node: str
     end_node: str
     tools_node: str

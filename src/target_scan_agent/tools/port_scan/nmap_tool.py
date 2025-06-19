@@ -1,11 +1,10 @@
+import logging
 import subprocess
 import time
 import xml.etree.ElementTree as ET
-import logging
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from .models import NmapScanResult, NmapHost, NmapPort
 from ..common.process_utils import (
     create_temp_file,
     delete_temp_file,
@@ -13,6 +12,7 @@ from ..common.process_utils import (
     terminate_process,
     wait_for_process_completion,
 )
+from .models import NmapHost, NmapPort, NmapScanResult
 
 
 async def nmap_port_scan_tool(
@@ -117,16 +117,21 @@ def _create_command(
     cmd.append(target)
 
     # Common options
-    cmd.extend([
-        "-T4",  # Timing template (aggressive)
-        "--open",  # Only show open ports
-        "--host-timeout", "300s",  # Host timeout
-    ])
+    cmd.extend(
+        [
+            "-T4",  # Timing template (aggressive)
+            "--open",  # Only show open ports
+            "--host-timeout",
+            "300s",  # Host timeout
+        ]
+    )
 
     return cmd
 
 
-def _parse_xml_output(temp_file: str, scan_type: str, scan_completed: bool) -> NmapScanResult:
+def _parse_xml_output(
+    temp_file: str, scan_type: str, scan_completed: bool
+) -> NmapScanResult:
     """Parse nmap XML output and return structured results."""
     try:
         tree = ET.parse(temp_file)
@@ -196,7 +201,7 @@ def _parse_host(host_elem) -> Optional[NmapHost]:
         address_elem = host_elem.find("address[@addrtype='ipv4']")
         if address_elem is None:
             address_elem = host_elem.find("address[@addrtype='ipv6']")
-        
+
         if address_elem is None:
             return None
 
@@ -303,7 +308,7 @@ def _parse_port(port_elem) -> Optional[NmapPort]:
 def _parse_os_info(os_elem) -> dict:
     """Parse OS information from XML."""
     os_info = {}
-    
+
     # OS matches
     osmatch_elems = os_elem.findall("osmatch")
     if osmatch_elems:

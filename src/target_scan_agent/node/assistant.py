@@ -1,10 +1,12 @@
-from target_scan_agent.state.state import TargetScanState, ToolsCalls
-from langchain_core.messages import SystemMessage, BaseMessage
-from langchain_core.runnables import Runnable
-from langchain_core.language_models import LanguageModelInput
+import json
 from dataclasses import dataclass
 from datetime import timedelta
-import json
+
+from langchain_core.language_models import LanguageModelInput
+from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.runnables import Runnable
+
+from target_scan_agent.state.state import TargetScanState, ToolsCalls
 
 ASSISTANT_SYSTEM_PROMPT = """You are an elite cybersecurity penetration testing agent with advanced expertise in reconnaissance, exploitation, and vulnerability assessment. Your mission is to conduct a comprehensive and thorough security assessment of the target system.
 
@@ -229,13 +231,14 @@ class AssistantNode:
             prev_scans = json.dumps(
                 [result.to_dict() for result in state["results"]], indent=2
             )
-            
+
             # Generate list of previous tool calls to avoid duplicates
-            prev_tool_calls = self._generate_previous_tool_calls_summary(state["results"])
-            
+            prev_tool_calls = self._generate_previous_tool_calls_summary(
+                state["results"]
+            )
+
             prompt += PREVIOUS_SCAN_PROMPT.format(
-                prev_scans=prev_scans,
-                prev_tool_calls=prev_tool_calls
+                prev_scans=prev_scans, prev_tool_calls=prev_tool_calls
             )
 
         # Only pass system message with context - no need for full conversation history
@@ -249,24 +252,26 @@ class AssistantNode:
             "max_calls": state.get("max_calls", 20),
             "tools_calls": tools_calls,
         }
-    
+
     def _generate_previous_tool_calls_summary(self, results: list) -> str:
         """Generate a summary of previous tool calls to avoid duplicates."""
         tool_calls_summary = []
-        
+
         for i, result in enumerate(results, 1):
-            if hasattr(result, 'tool_name') and result.tool_name:
+            if hasattr(result, "tool_name") and result.tool_name:
                 tool_name = result.tool_name
                 tool_args = result.tool_arguments or {}
-                
+
                 # Format arguments nicely for readability
-                args_str = ", ".join([f"{k}={v}" for k, v in tool_args.items() if v is not None])
-                
+                args_str = ", ".join(
+                    [f"{k}={v}" for k, v in tool_args.items() if v is not None]
+                )
+
                 if args_str:
                     tool_calls_summary.append(f"{i}. {tool_name}({args_str})")
                 else:
                     tool_calls_summary.append(f"{i}. {tool_name}()")
-        
+
         if tool_calls_summary:
             return "\n".join(tool_calls_summary)
         else:

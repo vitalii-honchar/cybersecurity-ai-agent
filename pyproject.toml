@@ -2,9 +2,7 @@
 name = "cybersecurity-ai-agent"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Vitalii Honchar",email = "weaxme@gmail.com"}
-]
+authors = [{ name = "Vitalii Honchar", email = "weaxme@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13,<4.0"
 dependencies = [
@@ -12,11 +10,16 @@ dependencies = [
     "tavily-python (>=0.7.5,<0.8.0)",
     "fastapi[standard] (>=0.115.12,<0.116.0)",
     "uvicorn (>=0.34.3,<0.35.0)",
-    "pydantic (>=2.0.0,<3.0.0)"
+    "pydantic (>=2.0.0,<3.0.0)",
 ]
 
 [tool.poetry]
-packages = [{include = "target_scan_agent", from = "src"}]
+packages = [
+    { include = "target_scan_agent", from = "src" },
+    { include = "scan_agent", from = "src" },
+    { include = "attack_agent", from = "src" },
+    { include = "agent_core", from = "src" },
+]
 
 [tool.poetry.group.dev.dependencies]
 langchain = "^0.3.25"
@@ -29,6 +32,7 @@ black = "^25.1.0"
 isort = "^6.0.1"
 ipykernel = "^6.29.5"
 requests = "^2.32.3"
+ruff = "^0.11.13"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -47,7 +51,7 @@ addopts = [
 asyncio_mode = "auto"
 markers = [
     "unit: Unit tests",
-    "integration: Integration tests", 
+    "integration: Integration tests",
     "slow: Slow running tests",
 ]
 

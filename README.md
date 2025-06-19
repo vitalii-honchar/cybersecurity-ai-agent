@@ -9,7 +9,15 @@
 - Report shows in CLI stdout
 - *Optional:* build simple web ui for this agent. Or instead of CLI build web ui. 
 
-## System Design
+## Implementation
+
+- `src/agent_core/` - common code for all agents
+- `src/scan_agent/` - ReAct agent that scans target for vulnerabilities
+- `src/attack_agent/` - ReAct agent that attacks target to find vulnerabilities
+- `src/cybersecurity_agent/` - chain of agent graph which combines scan and attack agents
+- `src/target_scan_agent/` - **OUTDATED** first attempt of agent implementation
+
+## **[OUTDATED]** System Design 
 
 ## AI Agent Architecture
 
